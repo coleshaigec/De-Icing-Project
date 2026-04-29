@@ -60,13 +60,13 @@ function simulationParameterGrids = buildSimulationParameterGridsForAnalyticMode
     % Enumerate and configure arrival process scenarios
     % ==================================================
     numArrivalProcessScenarios = 3;
-    templateArrivalProcessScenarioStruct = buildTemplateArrivalProcessScenarioStruct();
+    templateArrivalProcessStruct = buildTemplateArrivalProcessStruct();
 
-    arrivalProcesses = repmat(templateArrivalProcessScenarioStruct, numArrivalProcessScenarios, 1);
+    arrivalProcesses = repmat(templateArrivalProcessStruct, numArrivalProcessScenarios, 1);
 
     % -- First scenario: flat arrivals with no peak --
     % This scenario acts as a baseline to understand system behavior without large de-icing arrival transients
-    arrivalProcesses(1) = templateArrivalProcessScenarioStruct;
+    arrivalProcesses(1) = templateArrivalProcessStruct;
     arrivalProcesses(1).scenarioName = "noPeak";
     arrivalProcesses(1).lambdaBase = 3;
     arrivalProcesses(1).lambdaPeak = 0;
@@ -76,7 +76,7 @@ function simulationParameterGrids = buildSimulationParameterGridsForAnalyticMode
 
     % -- Second scenario: low flat rate with large and narrow peak --
     % This scenario acts as a test of system robustness against large de-icing arrival transients
-    arrivalProcesses(2) = templateArrivalProcessScenarioStruct;
+    arrivalProcesses(2) = templateArrivalProcessStruct;
     arrivalProcesses(2).scenarioName = "narrowPeak";
     arrivalProcesses(2).lambdaBase = 3;
     arrivalProcesses(2).lambdaPeak = 6;
@@ -87,7 +87,7 @@ function simulationParameterGrids = buildSimulationParameterGridsForAnalyticMode
     % -- Third scenario: low flat rate with large and long-lived peak -- 
     % This scenario tests system robustness under a sustained and large-amplitude airport departure bank
     % Such large departure banks are not uncommon at major hub airports
-    arrivalProcesses(3) = templateArrivalProcessScenarioStruct;
+    arrivalProcesses(3) = templateArrivalProcessStruct;
     arrivalProcesses(3).scenarioName = "broadPeak";
     arrivalProcesses(3).lambdaBase = 3;
     arrivalProcesses(3).lambdaPeak = 6;
@@ -99,12 +99,12 @@ function simulationParameterGrids = buildSimulationParameterGridsForAnalyticMode
     % Enumerate and configure service process scenarios
     % ==================================================
     numServiceProcessScenarios = 3;
-    templateServiceProcessScenarioStruct = buildTemplateServiceProcessScenarioStruct();
+    templateServiceProcessStruct = buildTemplateServiceProcessStruct();
 
-    serviceProcesses = repmat(templateServiceProcessScenarioStruct, numServiceProcessScenarios, 1);
+    serviceProcesses = repmat(templateServiceProcessStruct, numServiceProcessScenarios, 1);
 
     % -- First scenario: low-cost baseline --
-    serviceProcesses(1) = templateServiceProcessScenarioStruct;
+    serviceProcesses(1) = templateServiceProcessStruct;
     serviceProcesses(1).scenarioName = "baseline";
     serviceProcesses(1).muDI = 0.1;
     serviceProcesses(1).eta = 0.1;
@@ -113,7 +113,7 @@ function simulationParameterGrids = buildSimulationParameterGridsForAnalyticMode
     serviceProcesses(1).serviceProcessCAPEXCase = "low";
 
     % -- Second scenario: upgraded service infrastructure --
-    serviceProcesses(2) = templateServiceProcessScenarioStruct;
+    serviceProcesses(2) = templateServiceProcessStruct;
     serviceProcesses(2).scenarioName = "upgraded";
     serviceProcesses(2).muDI = 0.2;
     serviceProcesses(2).eta = 0.1;
@@ -122,7 +122,7 @@ function simulationParameterGrids = buildSimulationParameterGridsForAnalyticMode
     serviceProcesses(2).serviceProcessCAPEXCase = "medium";
 
     % -- Third scenario: heavy-duty de-icing infrastructure --
-    serviceProcesses(3) = templateServiceProcessScenarioStruct;
+    serviceProcesses(3) = templateServiceProcessStruct;
     serviceProcesses(3).scenarioName = "highEnd";
     serviceProcesses(3).muDI = 0.4;
     serviceProcesses(3).eta = 0.1;
@@ -135,12 +135,12 @@ function simulationParameterGrids = buildSimulationParameterGridsForAnalyticMode
     % =======================================================
 
     numTaxiTakeoffProcessScenarios = 3;
-    templateTaxiTakeoffProcessScenarioStruct = buildTemplateTaxiTakeoffProcessScenarioStruct();
+    templateTaxiTakeoffProcessStruct = buildTemplateTaxiTakeoffProcessStruct();
 
-    taxiTakeoffProcesses = repmat(templateTaxiTakeoffProcessScenarioStruct, numTaxiTakeoffProcessScenarios, 1);
+    taxiTakeoffProcesses = repmat(templateTaxiTakeoffProcessStruct, numTaxiTakeoffProcessScenarios, 1);
 
     % -- First scenario: baseline --
-    taxiTakeoffProcesses(1) = templateTaxiTakeoffProcessScenarioStruct;
+    taxiTakeoffProcesses(1) = templateTaxiTakeoffProcessStruct;
     taxiTakeoffProcesses(1).scenarioName = "baseline";
     taxiTakeoffProcesses(1).beta = 0.4;
     taxiTakeoffProcesses(1).p = 1;
@@ -150,7 +150,7 @@ function simulationParameterGrids = buildSimulationParameterGridsForAnalyticMode
     % -- Second scenario: small airport footprint, limited runway capacity --
     % This models airports with low baseline taxi/takeoff times but high
     % congestion sensitivity due to limited runway capacity
-    taxiTakeoffProcesses(2) = templateTaxiTakeoffProcessScenarioStruct;
+    taxiTakeoffProcesses(2) = templateTaxiTakeoffProcessStruct;
     taxiTakeoffProcesses(2).scenarioName = "congestionSensitive";
     taxiTakeoffProcesses(2).beta = 2;
     taxiTakeoffProcesses(2).p = 2;
@@ -160,7 +160,7 @@ function simulationParameterGrids = buildSimulationParameterGridsForAnalyticMode
     % -- Third scenario: large hub airport --
     % This scenario models a major hub airport with a large physical
     % footprint, long baseline taxi times, and moderate congestion sensitivity
-    taxiTakeoffProcesses(3) = templateTaxiTakeoffProcessScenarioStruct;
+    taxiTakeoffProcesses(3) = templateTaxiTakeoffProcessStruct;
     taxiTakeoffProcesses(3).scenarioName = "largeHub";
     taxiTakeoffProcesses(3).beta = 1;
     taxiTakeoffProcesses(3).p = 3/2;
