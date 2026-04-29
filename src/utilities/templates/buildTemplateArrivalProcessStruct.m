@@ -1,4 +1,4 @@
-function templateArrivalProcessScenarioStruct = buildTemplateArrivalProcessScenarioStruct()
+function templateArrivalProcessScenarioStruct = buildTemplateArrivalProcessStruct()
     % BUILDTEMPLATEARRIVALPROCESSSCENARIOSTRUCT Builds template arrival process scenario container for preallocation.
     %
     % OUTPUT
