@@ -9,17 +9,31 @@ function simContext = handleAircraftArrival(simContext, arrivalEvent)
     % OUTPUT
     %  simContext struct with fields
 
-    % -- Construct aircraft and push to state --
+    % -- Construct aircraft --
     newAircraft = constructAircraft(arrivalEvent);
-    simContext.state = pushAircraftToState(simContext.state, newAircraft);
 
     % -- Check for empty de-icing servers and decide where to send the aircraft --
     idleIdx = find(~[simContext.state.deicingServers.isBusy], 1, 'first');
-    if ~isempty(idleIdx)
-        % If a server is available, schedule a deicing job
-        simContext = scheduleDeicingJob(simContext, newAircraft.id, arrivalEvent.time, idleIdx);
+    if ~isEmpty(idleIdx)
+        % If empty server found, assign aircraft to it
+        simContext.state.deicingServers(idleIdx).isBusy = true;
+        simContext.state.deicingServers(idleIdx).currentAircraftId = aircraftId;
+        simContext.state.deicingServers(idleIdx).currentServiceStartTime = simContext.clock;
+
+        % Update aircraft state
+        newAircraft.currentDeicingServiceStartTime = arrivalEvent.time;
+
+        % Schedule de-icing completion event and add to event calendar
+        
+
+
     else 
         % If no empty servers, send aircraft to deicing queue
         simContext.state.deicingQueue = pushAircraftToDeicingQueue(simContext.state.deicingQueue, newAircraft.id);
+
+
     end
+    
+    
+
 end

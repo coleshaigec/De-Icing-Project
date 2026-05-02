@@ -39,5 +39,5 @@ function aircraft = constructAircraft(arrivalEvent, simContext)
     aircraft.STD = arrivalEvent.time + ...
         getAllowableBaselineGroundSojournTime() * aircraftTypeInfo.groundSojournTimeToleranceMultipliers(idxType);
     aircraft.actualTakeoffTime = NaN;
-    aircraft.currentLocation = "";
+    aircraft.currentLocation = "deicing";
 end
