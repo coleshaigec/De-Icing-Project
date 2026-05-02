@@ -1,0 +1,16 @@
+function simContext = handleEvent(simContext, currentEvent)
+    switch currentEvent.eventType
+        case "aircraftArrival"
+            simContext = handleAircraftArrival(simContext, currentEvent);
+
+        case "deicingComplete"
+            simContext = handleDeicingComplete(simContext, currentEvent);
+
+        case "taxiComplete"
+            simContext = handleTaxiComplete(simContext, currentEvent);
+            
+        otherwise
+            error('handleEvent:UnknownEventType', ...
+                'Unknown event type: %s', currentEvent.eventType);
+    end
+end

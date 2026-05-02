@@ -26,11 +26,14 @@ function aircraftTypeInfo = getAircraftTypeInfo()
 
     aircraftTypeNames = ["E175", "A320", "B757", "A350"];
     aircraftTypeProbabilities = [0.4, 0.3, 0.2, 0.1];
-    aircraftTypeInfo.thetas = [];
-    aircraftTypeInfo.alphas = [];
-
+    aircraftTypeAlphas = [8.0, 8.0, 8.0, 8.0];
+    aircraftTypeThetas = [0.75, 1.125, 1.50, 2.25];
+    groundSojournTimeToleranceMultipliers = [0.85, 1, 1.25, 1.5];
 
     aircraftTypeInfo = struct();
     aircraftTypeInfo.names = aircraftTypeNames;
+    aircraftTypeInfo.alphas = aircraftTypeAlphas;
+    aircraftTypeInfo.thetas = aircraftTypeThetas;
     aircraftTypeInfo.probabilities = aircraftTypeProbabilities;
+    aircraftTypeInfo.groundSojournTimeToleranceMultipliers = groundSojournTimeToleranceMultipliers;
 end
