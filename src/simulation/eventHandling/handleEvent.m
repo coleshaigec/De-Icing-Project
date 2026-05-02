@@ -8,9 +8,11 @@ function simContext = handleEvent(simContext, currentEvent)
 
         case "taxiComplete"
             simContext = handleTaxiComplete(simContext, currentEvent);
-            
+
         otherwise
             error('handleEvent:UnknownEventType', ...
                 'Unknown event type: %s', currentEvent.eventType);
     end
+    
+    % Do we need to update clock in here too?
 end

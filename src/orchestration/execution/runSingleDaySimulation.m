@@ -56,11 +56,16 @@ function singleDaySimulationResult = runSingleDaySimulation(yearSimulationPlan, 
     % Initialization
     % ===============
 
+    % -- Extract storm scenario --
     dayStorm = yearSimulationPlan.stormEvents(stormIndex);
-    
 
+    % -- Generate external arrival process --
     arrivalTimestamps = generateArrivalTimesForDaySimulation(yearSimulationPlan.arrivalProcess, dayStorm.durationHours);
     externalArrivalEvents = buildAircraftArrivalEventsFromTimestamps(arrivalTimestamps);
+
+    % -- Build de-icing servers --
+    deicingServers = buildDeicingServers()
+
 
     eventCalendar = initializeEventCalendar(externalArrivalEvents);
 
@@ -69,6 +74,8 @@ function singleDaySimulationResult = runSingleDaySimulation(yearSimulationPlan, 
     simContext.clock = 0;
     simContext.state = buildTemplateStateStruct();
     simContext.aircraft = [];
+    simContext.storm = dayStorm;
+    simContext.deicingServers = 
 
     % ================
     % Core event loop
