@@ -144,81 +144,25 @@ function simulationParameterGrids = buildSimulationParameterGridsForAnalyticMode
     taxiTakeoffProcesses(3).T0 = 15;
     taxiTakeoffProcesses(3).CT = 3;
 
-    % ==================================================
-    % Weather process baseline bundle
-    % ==================================================
-    numWeatherProcesses = 4;
-    templateWeatherProcessStruct = buildTemplateWeatherProcessStruct();
-    baselineWeatherProcesses = repmat(templateWeatherProcessStruct, numWeatherProcesses, 1);
-
-    baselineWeatherProcesses(1) = templateWeatherProcessStruct;
-    baselineWeatherProcesses(1).scenarioName = "mildStorm";
-    baselineWeatherProcesses(1).numOccurrences = 20;
-    baselineWeatherProcesses(1).fluidCostMultiple = 1;
-    baselineWeatherProcesses(1).activationCostMultiple = 1;
-
-    baselineWeatherProcesses(2) = templateWeatherProcessStruct;
-    baselineWeatherProcesses(2).scenarioName = "moderateStorm";
-    baselineWeatherProcesses(2).numOccurrences = 10;
-    baselineWeatherProcesses(2).fluidCostMultiple = 2;
-    baselineWeatherProcesses(2).activationCostMultiple = 2;
-
-    baselineWeatherProcesses(3) = templateWeatherProcessStruct;
-    baselineWeatherProcesses(3).scenarioName = "severeStorm";
-    baselineWeatherProcesses(3).numOccurrences = 5;
-    baselineWeatherProcesses(3).fluidCostMultiple = 3;
-    baselineWeatherProcesses(3).activationCostMultiple = 3;
-
-    baselineWeatherProcesses(4) = templateWeatherProcessStruct;
-    baselineWeatherProcesses(4).scenarioName = "extremeStorm";
-    baselineWeatherProcesses(4).numOccurrences = 2;
-    baselineWeatherProcesses(4).fluidCostMultiple = 4;
-    baselineWeatherProcesses(4).activationCostMultiple = 5;
 
     % ==================================================
-    % Weather bundle sweeps
+    % Annual storm-count and storm-severity parameters
     % ==================================================
-    weatherFrequencyMultipliers = [0.5, 1.0, 1.5, 2.0];
-    weatherIntensityMultipliers = [1.0, 1.5, 2.0];
+    % NOTES
+    % - Each simulation plan represents one annual operating scenario.
+    % - annualNumberOfStormsValues sweeps the number of storm days in the year.
+    % - stormDistributionParameters parameterizes the stochastic storm event
+    %   generator used by buildStormEvents.
+    % - Storm-event heterogeneity is generated inside unpackSimulationParameterGrids
+    %   so that each annual simulation plan receives one explicit array of
+    %   day-level storm events.
 
-    numWeatherBundles = numel(weatherFrequencyMultipliers) * numel(weatherIntensityMultipliers);
+    annualNumberOfStormsValues = 10:5:100;
 
-    templateWeatherBundleStruct = buildTemplateWeatherBundleStruct();
-    templateWeatherBundleStruct.weatherProcesses = baselineWeatherProcesses;
-
-    weatherBundles = repmat(templateWeatherBundleStruct, numWeatherBundles, 1);
-
-    weatherBundleIndex = 0;
-
-    for iFrequency = 1:numel(weatherFrequencyMultipliers)
-        for iIntensity = 1:numel(weatherIntensityMultipliers)
-            weatherBundleIndex = weatherBundleIndex + 1;
-
-            frequencyMultiplier = weatherFrequencyMultipliers(iFrequency);
-            intensityMultiplier = weatherIntensityMultipliers(iIntensity);
-
-            weatherProcesses = baselineWeatherProcesses;
-
-            for iWeatherProcess = 1:numel(weatherProcesses)
-                weatherProcesses(iWeatherProcess).numOccurrences = ...
-                    frequencyMultiplier * weatherProcesses(iWeatherProcess).numOccurrences;
-
-                weatherProcesses(iWeatherProcess).fluidCostMultiple = ...
-                    intensityMultiplier * weatherProcesses(iWeatherProcess).fluidCostMultiple;
-
-                weatherProcesses(iWeatherProcess).activationCostMultiple = ...
-                    intensityMultiplier * weatherProcesses(iWeatherProcess).activationCostMultiple;
-            end
-
-            weatherBundles(weatherBundleIndex) = templateWeatherBundleStruct;
-            weatherBundles(weatherBundleIndex).scenarioName = ...
-                "freq" + string(frequencyMultiplier) + "_intensity" + string(intensityMultiplier);
-            weatherBundles(weatherBundleIndex).frequencyMultiplier = frequencyMultiplier;
-            weatherBundles(weatherBundleIndex).intensityMultiplier = intensityMultiplier;
-            weatherBundles(weatherBundleIndex).weatherProcesses = weatherProcesses;
-        end
-    end
-
+    stormDistributionParameters = struct( ...
+        'alpha', 2, ...
+        'theta', 0.5 ...
+    );
     % =============================================
     % Cost model scenarios
     % =============================================
@@ -274,6 +218,7 @@ function simulationParameterGrids = buildSimulationParameterGridsForAnalyticMode
     simulationParameterGrids.arrivalProcesses = arrivalProcesses;
     simulationParameterGrids.serviceProcesses = serviceProcesses;
     simulationParameterGrids.taxiTakeoffProcesses = taxiTakeoffProcesses;
-    simulationParameterGrids.weatherBundles = weatherBundles;
+    simulationParameterGrids.annualNumberOfStormsValues = annualNumberOfStormsValues;
+    simulationParameterGrids.stormDistributionParameters = stormDistributionParameters;
     simulationParameterGrids.costModels = costModels;
 end

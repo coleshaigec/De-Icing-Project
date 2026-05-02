@@ -43,24 +43,24 @@ function arrivalTimes = generateArrivalTimesForDaySimulation(arrivalProcess, sto
     arrivalTimes = arrivalTimes(:);
 end
 
-
 function candidateArrivalTimes = generateHomogeneousPoissonCandidateTimes(lambdaRate, horizonMinutes)
-    candidateArrivalTimes = zeros(0, 1);
 
-    currentTime = 0.0;
+    expectedCount = lambdaRate * horizonMinutes;
 
-    while true
-        interarrivalTime = exprnd(1.0 / lambdaRate);
-        currentTime = currentTime + interarrivalTime;
+    % Sample total number of arrivals
+    numArrivals = poissrnd(expectedCount);
 
-        if currentTime > horizonMinutes
-            break;
-        end
-
-        candidateArrivalTimes(end + 1, 1) = currentTime; %#ok<AGROW>
+    if numArrivals == 0
+        candidateArrivalTimes = zeros(0,1);
+        return;
     end
-end
 
+    % Sample unordered arrival times
+    candidateArrivalTimes = horizonMinutes * rand(numArrivals, 1);
+
+    % Sort to enforce time ordering
+    candidateArrivalTimes = sort(candidateArrivalTimes);
+end
 
 function lambdaValues = evaluateArrivalIntensity(tValues, arrivalProcess)
     lambdaValues = arrivalProcess.lambdaBase + arrivalProcess.lambdaPeak .* exp( ...
