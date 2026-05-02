@@ -29,6 +29,7 @@ function simulationParameterGrids = buildSimulationParameterGridsForAnalyticMode
     %      .weatherProcesses array of structs, each with fields
     %          .scenarioName (string)                  - name of weather process scenario
     %          .numOccurrences (double)                - annual scenario occurrence frequency
+    %          .duration (double)                      - number of hours for which specified storm type persists
     %          .fluidCostMultiple (string)             - scenario-specific fluid cost multiplier 
     %          .activationCostMultiple (double)        - scenario-specific resource activation cost multiplier
     %      .costModel array of structs, each with fields
@@ -49,23 +50,17 @@ function simulationParameterGrids = buildSimulationParameterGridsForAnalyticMode
     % - Delay costs capture geographically dispersed network externalities and are 
     % thus assumed to be independent of the chosen weather scenario.
 
-    % ===========================================
-    % Enumerate and configure candidate policies 
-    % ===========================================
     policies = struct();
     policies.kValues = 1:8;
-    policies.eValues = 1:3; % service rate scenarios are fixed - don't change this
+    policies.eValues = 1:3;
 
     % ==================================================
-    % Enumerate and configure arrival process scenarios
+    % Arrival process scenarios
     % ==================================================
     numArrivalProcessScenarios = 3;
     templateArrivalProcessStruct = buildTemplateArrivalProcessStruct();
-
     arrivalProcesses = repmat(templateArrivalProcessStruct, numArrivalProcessScenarios, 1);
 
-    % -- First scenario: flat arrivals with no peak --
-    % This scenario acts as a baseline to understand system behavior without large de-icing arrival transients
     arrivalProcesses(1) = templateArrivalProcessStruct;
     arrivalProcesses(1).scenarioName = "noPeak";
     arrivalProcesses(1).lambdaBase = 3;
@@ -74,8 +69,6 @@ function simulationParameterGrids = buildSimulationParameterGridsForAnalyticMode
     arrivalProcesses(1).sigmaLambda = 1;
     arrivalProcesses(1).Ca = 1;
 
-    % -- Second scenario: low flat rate with large and narrow peak --
-    % This scenario acts as a test of system robustness against large de-icing arrival transients
     arrivalProcesses(2) = templateArrivalProcessStruct;
     arrivalProcesses(2).scenarioName = "narrowPeak";
     arrivalProcesses(2).lambdaBase = 3;
@@ -84,9 +77,6 @@ function simulationParameterGrids = buildSimulationParameterGridsForAnalyticMode
     arrivalProcesses(2).sigmaLambda = 0.2;
     arrivalProcesses(2).Ca = 1;
 
-    % -- Third scenario: low flat rate with large and long-lived peak -- 
-    % This scenario tests system robustness under a sustained and large-amplitude airport departure bank
-    % Such large departure banks are not uncommon at major hub airports
     arrivalProcesses(3) = templateArrivalProcessStruct;
     arrivalProcesses(3).scenarioName = "broadPeak";
     arrivalProcesses(3).lambdaBase = 3;
@@ -96,14 +86,12 @@ function simulationParameterGrids = buildSimulationParameterGridsForAnalyticMode
     arrivalProcesses(3).Ca = 1;
 
     % ==================================================
-    % Enumerate and configure service process scenarios
+    % Service process scenarios
     % ==================================================
     numServiceProcessScenarios = 3;
     templateServiceProcessStruct = buildTemplateServiceProcessStruct();
-
     serviceProcesses = repmat(templateServiceProcessStruct, numServiceProcessScenarios, 1);
 
-    % -- First scenario: low-cost baseline --
     serviceProcesses(1) = templateServiceProcessStruct;
     serviceProcesses(1).scenarioName = "baseline";
     serviceProcesses(1).muDI = 0.1;
@@ -112,7 +100,6 @@ function simulationParameterGrids = buildSimulationParameterGridsForAnalyticMode
     serviceProcesses(1).activationCostMultiple = 1;
     serviceProcesses(1).serviceProcessCAPEXCase = "low";
 
-    % -- Second scenario: upgraded service infrastructure --
     serviceProcesses(2) = templateServiceProcessStruct;
     serviceProcesses(2).scenarioName = "upgraded";
     serviceProcesses(2).muDI = 0.2;
@@ -121,7 +108,6 @@ function simulationParameterGrids = buildSimulationParameterGridsForAnalyticMode
     serviceProcesses(2).activationCostMultiple = 1.5;
     serviceProcesses(2).serviceProcessCAPEXCase = "medium";
 
-    % -- Third scenario: heavy-duty de-icing infrastructure --
     serviceProcesses(3) = templateServiceProcessStruct;
     serviceProcesses(3).scenarioName = "highEnd";
     serviceProcesses(3).muDI = 0.4;
@@ -131,15 +117,12 @@ function simulationParameterGrids = buildSimulationParameterGridsForAnalyticMode
     serviceProcesses(3).serviceProcessCAPEXCase = "high";
 
     % =======================================================
-    % Enumerate and configure taxi/takeoff process scenarios
+    % Taxi/takeoff process scenarios
     % =======================================================
-
     numTaxiTakeoffProcessScenarios = 3;
     templateTaxiTakeoffProcessStruct = buildTemplateTaxiTakeoffProcessStruct();
-
     taxiTakeoffProcesses = repmat(templateTaxiTakeoffProcessStruct, numTaxiTakeoffProcessScenarios, 1);
 
-    % -- First scenario: baseline --
     taxiTakeoffProcesses(1) = templateTaxiTakeoffProcessStruct;
     taxiTakeoffProcesses(1).scenarioName = "baseline";
     taxiTakeoffProcesses(1).beta = 0.4;
@@ -147,128 +130,139 @@ function simulationParameterGrids = buildSimulationParameterGridsForAnalyticMode
     taxiTakeoffProcesses(1).T0 = 10;
     taxiTakeoffProcesses(1).CT = 3;
 
-    % -- Second scenario: small airport footprint, limited runway capacity --
-    % This models airports with low baseline taxi/takeoff times but high
-    % congestion sensitivity due to limited runway capacity
     taxiTakeoffProcesses(2) = templateTaxiTakeoffProcessStruct;
     taxiTakeoffProcesses(2).scenarioName = "congestionSensitive";
     taxiTakeoffProcesses(2).beta = 2;
     taxiTakeoffProcesses(2).p = 2;
     taxiTakeoffProcesses(2).T0 = 5;
     taxiTakeoffProcesses(2).CT = 3;
-    
-    % -- Third scenario: large hub airport --
-    % This scenario models a major hub airport with a large physical
-    % footprint, long baseline taxi times, and moderate congestion sensitivity
+
     taxiTakeoffProcesses(3) = templateTaxiTakeoffProcessStruct;
     taxiTakeoffProcesses(3).scenarioName = "largeHub";
     taxiTakeoffProcesses(3).beta = 1;
-    taxiTakeoffProcesses(3).p = 3/2;
+    taxiTakeoffProcesses(3).p = 3 / 2;
     taxiTakeoffProcesses(3).T0 = 15;
     taxiTakeoffProcesses(3).CT = 3;
 
     % ==================================================
-    % Enumerate and configure weather process scenarios
+    % Weather process baseline bundle
     % ==================================================
-    % NOTES
-    % - Meteorological modeling is outside the scope of this study.
-    % - This predefined set of weather events is imposed, with annual
-    % frequency specified as heuristic approximations rather than estimates
-    % from empirical data.
-    % - Adjustments may be made to frequencies and cost multiples to
-    % simulate different airport locales and operating conditions.
-
-
     numWeatherProcesses = 4;
     templateWeatherProcessStruct = buildTemplateWeatherProcessStruct();
+    baselineWeatherProcesses = repmat(templateWeatherProcessStruct, numWeatherProcesses, 1);
 
-    weatherProcesses = repmat(templateWeatherProcessStruct, numWeatherProcesses, 1);
+    baselineWeatherProcesses(1) = templateWeatherProcessStruct;
+    baselineWeatherProcesses(1).scenarioName = "mildStorm";
+    baselineWeatherProcesses(1).numOccurrences = 20;
+    baselineWeatherProcesses(1).fluidCostMultiple = 1;
+    baselineWeatherProcesses(1).activationCostMultiple = 1;
 
-    % -- First scenario: baseline --
-    weatherProcesses(1) = templateWeatherProcessStruct;
-    weatherProcesses(1).scenarioName = "mildStorm";
-    weatherProcesses(1).numOccurrences = 20;
-    weatherProcesses(1).fluidCostMultiple = 1;
-    weatherProcesses(1).activationCostMultiple = 1;
+    baselineWeatherProcesses(2) = templateWeatherProcessStruct;
+    baselineWeatherProcesses(2).scenarioName = "moderateStorm";
+    baselineWeatherProcesses(2).numOccurrences = 10;
+    baselineWeatherProcesses(2).fluidCostMultiple = 2;
+    baselineWeatherProcesses(2).activationCostMultiple = 2;
 
-    % -- Second scenario: moderate storm --
-    weatherProcesses(2) = templateWeatherProcessStruct;
-    weatherProcesses(2).scenarioName = "moderateStorm";
-    weatherProcesses(2).numOccurrences = 10;
-    weatherProcesses(2).fluidCostMultiple = 2;
-    weatherProcesses(2).activationCostMultiple = 2;
+    baselineWeatherProcesses(3) = templateWeatherProcessStruct;
+    baselineWeatherProcesses(3).scenarioName = "severeStorm";
+    baselineWeatherProcesses(3).numOccurrences = 5;
+    baselineWeatherProcesses(3).fluidCostMultiple = 3;
+    baselineWeatherProcesses(3).activationCostMultiple = 3;
 
-    % -- Third scenario: severe storm --
-    weatherProcesses(3) = templateWeatherProcessStruct;
-    weatherProcesses(3).scenarioName = "severeStorm";
-    weatherProcesses(3).numOccurrences = 5;
-    weatherProcesses(3).fluidCostMultiple = 3;
-    weatherProcesses(3).activationCostMultiple = 3;
+    baselineWeatherProcesses(4) = templateWeatherProcessStruct;
+    baselineWeatherProcesses(4).scenarioName = "extremeStorm";
+    baselineWeatherProcesses(4).numOccurrences = 2;
+    baselineWeatherProcesses(4).fluidCostMultiple = 4;
+    baselineWeatherProcesses(4).activationCostMultiple = 5;
 
-    % -- Fourth scenario: extreme event --
-    weatherProcesses(4) = templateWeatherProcessStruct;
-    weatherProcesses(4).scenarioName = "extremeStorm";
-    weatherProcesses(4).numOccurrences = 2;
-    weatherProcesses(4).fluidCostMultiple = 4;
-    weatherProcesses(4).activationCostMultiple = 5;
+    % ==================================================
+    % Weather bundle sweeps
+    % ==================================================
+    weatherFrequencyMultipliers = [0.5, 1.0, 1.5, 2.0];
+    weatherIntensityMultipliers = [1.0, 1.5, 2.0];
+
+    numWeatherBundles = numel(weatherFrequencyMultipliers) * numel(weatherIntensityMultipliers);
+
+    templateWeatherBundleStruct = buildTemplateWeatherBundleStruct();
+    templateWeatherBundleStruct.weatherProcesses = baselineWeatherProcesses;
+
+    weatherBundles = repmat(templateWeatherBundleStruct, numWeatherBundles, 1);
+
+    weatherBundleIndex = 0;
+
+    for iFrequency = 1:numel(weatherFrequencyMultipliers)
+        for iIntensity = 1:numel(weatherIntensityMultipliers)
+            weatherBundleIndex = weatherBundleIndex + 1;
+
+            frequencyMultiplier = weatherFrequencyMultipliers(iFrequency);
+            intensityMultiplier = weatherIntensityMultipliers(iIntensity);
+
+            weatherProcesses = baselineWeatherProcesses;
+
+            for iWeatherProcess = 1:numel(weatherProcesses)
+                weatherProcesses(iWeatherProcess).numOccurrences = ...
+                    frequencyMultiplier * weatherProcesses(iWeatherProcess).numOccurrences;
+
+                weatherProcesses(iWeatherProcess).fluidCostMultiple = ...
+                    intensityMultiplier * weatherProcesses(iWeatherProcess).fluidCostMultiple;
+
+                weatherProcesses(iWeatherProcess).activationCostMultiple = ...
+                    intensityMultiplier * weatherProcesses(iWeatherProcess).activationCostMultiple;
+            end
+
+            weatherBundles(weatherBundleIndex) = templateWeatherBundleStruct;
+            weatherBundles(weatherBundleIndex).scenarioName = ...
+                "freq" + string(frequencyMultiplier) + "_intensity" + string(intensityMultiplier);
+            weatherBundles(weatherBundleIndex).frequencyMultiplier = frequencyMultiplier;
+            weatherBundles(weatherBundleIndex).intensityMultiplier = intensityMultiplier;
+            weatherBundles(weatherBundleIndex).weatherProcesses = weatherProcesses;
+        end
+    end
 
     % =============================================
-    % Enumerate and configure cost model scenarios
+    % Cost model scenarios
     % =============================================
-
     numCostScenarios = 5;
     templateCostModelStruct = buildTemplateCostModelStruct();
-
     costModels = repmat(templateCostModelStruct, numCostScenarios, 1);
 
-    % -- First scenario: baseline --
     costModels(1) = templateCostModelStruct;
     costModels(1).scenarioName = "baseline";
     costModels(1).singlePadCAPEX = 20;
-    costModels(1).serviceProcessCAPEXes = [5, 10, 20]; 
-    costModels(1).delayCosts = [5,10,20];
+    costModels(1).serviceProcessCAPEXes = [5, 10, 20];
+    costModels(1).delayCosts = [5, 10, 20];
     costModels(1).baseFluidCost = 1;
     costModels(1).baseActivationCost = 1;
 
-    % -- Second scenario: baseline + high sensitivity to network externalities --
-    % This scenario models hub airports with large, tightly-coupled
-    % networks that are strongly sensitive to delays
     costModels(2) = templateCostModelStruct;
     costModels(2).scenarioName = "externalitySensitive";
     costModels(2).singlePadCAPEX = 20;
-    costModels(2).serviceProcessCAPEXes = [5, 10, 20]; 
-    costModels(2).delayCosts = [10,20,40];
+    costModels(2).serviceProcessCAPEXes = [5, 10, 20];
+    costModels(2).delayCosts = [10, 20, 40];
     costModels(2).baseFluidCost = 1;
     costModels(2).baseActivationCost = 1;
 
-    % -- Third scenario: tight labor market --
-    % This scenario models an airport that faces high labor costs
     costModels(3) = templateCostModelStruct;
     costModels(3).scenarioName = "tightLaborMarket";
     costModels(3).singlePadCAPEX = 20;
-    costModels(3).serviceProcessCAPEXes = [5, 10, 20]; 
-    costModels(3).delayCosts = [5,10,20];
+    costModels(3).serviceProcessCAPEXes = [5, 10, 20];
+    costModels(3).delayCosts = [5, 10, 20];
     costModels(3).baseFluidCost = 1;
     costModels(3).baseActivationCost = 5;
 
-    % -- Fourth scenario: high-CAPEX airport --
-    % This scenario models an airport with high cost of capital and
-    % baseline variable OPEX.
     costModels(4) = templateCostModelStruct;
     costModels(4).scenarioName = "highCAPEX";
     costModels(4).singlePadCAPEX = 30;
-    costModels(4).serviceProcessCAPEXes = [10, 15, 25]; 
-    costModels(4).delayCosts = [5,10,20];
+    costModels(4).serviceProcessCAPEXes = [10, 15, 25];
+    costModels(4).delayCosts = [5, 10, 20];
     costModels(4).baseFluidCost = 1;
     costModels(4).baseActivationCost = 1;
 
-    % -- Fifth scenario: high fluid costs --
-    % This scenario models an airport facing high fluid costs.
     costModels(5) = templateCostModelStruct;
     costModels(5).scenarioName = "highFluidCost";
     costModels(5).singlePadCAPEX = 20;
-    costModels(5).serviceProcessCAPEXes = [5, 10, 20]; 
-    costModels(5).delayCosts = [5,10,20];
+    costModels(5).serviceProcessCAPEXes = [5, 10, 20];
+    costModels(5).delayCosts = [5, 10, 20];
     costModels(5).baseFluidCost = 5;
     costModels(5).baseActivationCost = 1;
 
@@ -280,6 +274,6 @@ function simulationParameterGrids = buildSimulationParameterGridsForAnalyticMode
     simulationParameterGrids.arrivalProcesses = arrivalProcesses;
     simulationParameterGrids.serviceProcesses = serviceProcesses;
     simulationParameterGrids.taxiTakeoffProcesses = taxiTakeoffProcesses;
-    simulationParameterGrids.weatherProcesses = weatherProcesses;
+    simulationParameterGrids.weatherBundles = weatherBundles;
     simulationParameterGrids.costModels = costModels;
 end

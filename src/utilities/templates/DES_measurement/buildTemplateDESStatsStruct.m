@@ -49,11 +49,4 @@ function stats = buildTemplateDESStatsStruct()
     stats.typeObservations.taxiTakeoffAircraftTypes = strings(0, 1);
     stats.typeObservations.departureAircraftTypes = strings(0, 1);
     stats.typeObservations.hotViolationAircraftTypes = strings(0, 1);
-
-    stats.costInputs = struct();
-    stats.costInputs.totalDeicingServiceTime = [];
-    stats.costInputs.totalTaxiTakeoffTime = [];
-    stats.costInputs.totalDelayPenaltyProxy = [];
-    stats.costInputs.totalFluidUseProxy = [];
-    stats.costInputs.totalActivationProxy = [];
 end

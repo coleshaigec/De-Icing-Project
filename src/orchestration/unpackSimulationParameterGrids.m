@@ -12,7 +12,7 @@ function simulationPlans = unpackSimulationParameterGrids()
     %      .weatherProcesses array of structs         - weather process scenario bundle
     %      .costModel struct                          - chosen cost scenario
 
-    simulationParameterGrids = buildSimulationParameterGridsForAnalyticModel();
+       simulationParameterGrids = buildSimulationParameterGridsForAnalyticModel();
 
     kValues = simulationParameterGrids.policies.kValues;
     eValues = simulationParameterGrids.policies.eValues;
@@ -20,19 +20,21 @@ function simulationPlans = unpackSimulationParameterGrids()
     arrivalProcesses = simulationParameterGrids.arrivalProcesses;
     serviceProcesses = simulationParameterGrids.serviceProcesses;
     taxiTakeoffProcesses = simulationParameterGrids.taxiTakeoffProcesses;
-    weatherProcesses = simulationParameterGrids.weatherProcesses;
+    weatherBundles = simulationParameterGrids.weatherBundles;
     costModels = simulationParameterGrids.costModels;
 
     numKValues = numel(kValues);
     numEValues = numel(eValues);
     numArrivalProcesses = numel(arrivalProcesses);
     numTaxiTakeoffProcesses = numel(taxiTakeoffProcesses);
+    numWeatherBundles = numel(weatherBundles);
     numCostModels = numel(costModels);
 
     numSimulationPlans = numKValues ...
         * numEValues ...
         * numArrivalProcesses ...
         * numTaxiTakeoffProcesses ...
+        * numWeatherBundles ...
         * numCostModels;
 
     templateSimulationPlanStruct = buildTemplateSimulationPlanStruct();
@@ -49,27 +51,30 @@ function simulationPlans = unpackSimulationParameterGrids()
 
             for iArrivalProcess = 1:numArrivalProcesses
                 for iTaxiTakeoffProcess = 1:numTaxiTakeoffProcesses
-                    for iCostModel = 1:numCostModels
-                        planIndex = planIndex + 1;
+                    for iWeatherBundle = 1:numWeatherBundles
+                        for iCostModel = 1:numCostModels
+                            planIndex = planIndex + 1;
 
-                        simulationPlans(planIndex) = templateSimulationPlanStruct;
+                            simulationPlans(planIndex) = templateSimulationPlanStruct;
 
-                        simulationPlans(planIndex).policy.k = kValues(iK);
-                        simulationPlans(planIndex).policy.e = e;
+                            simulationPlans(planIndex).policy.k = kValues(iK);
+                            simulationPlans(planIndex).policy.e = e;
 
-                        simulationPlans(planIndex).arrivalProcess = ...
-                            arrivalProcesses(iArrivalProcess);
+                            simulationPlans(planIndex).arrivalProcess = ...
+                                arrivalProcesses(iArrivalProcess);
 
-                        simulationPlans(planIndex).serviceProcess = ...
-                            serviceProcesses(e);
+                            simulationPlans(planIndex).serviceProcess = ...
+                                serviceProcesses(e);
 
-                        simulationPlans(planIndex).taxiTakeoffProcess = ...
-                            taxiTakeoffProcesses(iTaxiTakeoffProcess);
+                            simulationPlans(planIndex).taxiTakeoffProcess = ...
+                                taxiTakeoffProcesses(iTaxiTakeoffProcess);
 
-                        simulationPlans(planIndex).weatherProcesses = weatherProcesses;
+                            simulationPlans(planIndex).weatherBundle = ...
+                                weatherBundles(iWeatherBundle);
 
-                        simulationPlans(planIndex).costModel = ...
-                            costModels(iCostModel);
+                            simulationPlans(planIndex).costModel = ...
+                                costModels(iCostModel);
+                        end
                     end
                 end
             end

@@ -18,9 +18,9 @@ function templateSimulationPlanStruct = buildTemplateSimulationPlanStruct()
 
     templateSimulationPlanStruct = struct();
     templateSimulationPlanStruct.policy = policy;
-    templateSimulationPlanStruct.arrivalProcess = buildTemplateArrivalProcessScenarioStruct();
+    templateSimulationPlanStruct.arrivalProcess = buildTemplateArrivalProcessStruct();
     templateSimulationPlanStruct.serviceProcess = buildTemplateServiceProcessStruct();
     templateSimulationPlanStruct.taxiTakeoffProcess = buildTemplateTaxiTakeoffProcessStruct();
-    templateSimulationPlanStruct.weatherProcesses = buildTemplateWeatherProcessStruct();
+    templateSimulationPlanStruct.weatherBundle = struct();
     templateSimulationPlanStruct.costModel = buildTemplateCostModelStruct();
 end
