@@ -9,7 +9,9 @@ function templateSimulationPlanStruct = buildTemplateSimulationPlanStruct()
     %      .arrivalProcess struct                     - chosen arrival process scenario
     %      .serviceProcess struct                     - chosen service process scenario
     %      .taxiTakeoffProcess struct                 - chosen taxi/takeoff process scenario
-    %      .weatherProcesses array of structs         - weather process scenario bundle
+    %      .annualNumberOfStorms
+    %      .stormDistributionParameters
+    %      .stormEvents
     %      .costModel struct                          - chosen cost scenario
 
     policy = struct();
@@ -21,6 +23,8 @@ function templateSimulationPlanStruct = buildTemplateSimulationPlanStruct()
     templateSimulationPlanStruct.arrivalProcess = buildTemplateArrivalProcessStruct();
     templateSimulationPlanStruct.serviceProcess = buildTemplateServiceProcessStruct();
     templateSimulationPlanStruct.taxiTakeoffProcess = buildTemplateTaxiTakeoffProcessStruct();
-    templateSimulationPlanStruct.weatherBundle = struct();
+    templateSimulationPlanStruct.annualNumberOfStorms = [];
+    templateSimulationPlanStruct.stormDistributionParameters = struct();
+    templateSimulationPlanStruct.stormEvents = struct([]);
     templateSimulationPlanStruct.costModel = buildTemplateCostModelStruct();
 end
