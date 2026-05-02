@@ -57,11 +57,29 @@ function singleDaySimulationResult = runSingleDaySimulation(yearSimulationPlan, 
     % ===============
 
     dayStorm = yearSimulationPlan.stormEvents(stormIndex);
-    clock = 0;
-    state = buildTemplateStateStruct();
-    % eventCalendar = 
+    
 
     arrivalTimestamps = generateArrivalTimesForDaySimulation(yearSimulationPlan.arrivalProcess, dayStorm.durationHours);
+    externalArrivalEvents = buildAircraftArrivalEventsFromTimestamps(arrivalTimestamps);
+
+    eventCalendar = initializeEventCalendar(externalArrivalEvents);
+
+    simContext = struct();
+    simContext.eventCalendar = eventCalendar;
+    simContext.clock = 0;
+    simContext.state = buildTemplateStateStruct();
+    simContext.aircraft = [];
+
+    % ================
+    % Core event loop
+    % ================
+    while ~isEventCalendarEmpty(simContext.eventCalendar)
+        [currentEvent, simContext.eventCalendar] = popNextEventFromCalendar( ...
+            simContext.eventCalendar);
+    
+        simContext.clock = currentEvent.time;
+        simContext = handleEvent(simContext, currentEvent);
+    end
 
 
 end

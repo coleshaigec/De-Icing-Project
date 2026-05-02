@@ -10,7 +10,7 @@ function singleDaySimulationResult = runSingleDaySimulation(yearSimulationPlan, 
     %      .arrivalProcess struct with fields
     %          .scenarioName (string)                  - name of chosen arrival process scenario
     %          .lambdaBase (nonnegative double)        - baseline arrival rate
-    %          .lambdaPeak (nonnegative double)        - peak arrival rate
+    %          .lambdaPeak (nonnegative double)        - peak arrival rate (per minute)
     %          .t0 (positive integer)                  - arrival pulse peak time
     %          .sigmaLambda (nonnegative double)       - arrival pulse tapering coefficient
     %          .Ca (nonnegative double)                - arrival process coefficient of variation
@@ -57,11 +57,28 @@ function singleDaySimulationResult = runSingleDaySimulation(yearSimulationPlan, 
     % ===============
 
     dayStorm = yearSimulationPlan.stormEvents(stormIndex);
-    clock = 0;
-    state = buildTemplateStateStruct();
-    % eventCalendar = 
+    
 
-    arrivalTimestamps = generateArrivalTimes()
+    arrivalTimestamps = generateArrivalTimesForDaySimulation(yearSimulationPlan.arrivalProcess, dayStorm.durationHours);
+    externalArrivalEvents = buildAircraftArrivalEventsFromTimestamps(arrivalTimestamps);
+
+    eventCalendar = initializeEventCalendar(externalArrivalEvents);
+
+    simContext = struct();
+    simContext.eventCalendar = eventCalendar;
+    simContext.clock = 0;
+    simContext.state = buildTemplateStateStruct();
+
+    % ================
+    % Core event loop
+    % ================
+    while ~isEventCalendarEmpty(simContext.eventCalendar)
+    [currentEvent, simContext.eventCalendar] = popNextEventFromCalendar( ...
+        simContext.eventCalendar);
+
+    simContext.clock = currentEvent.time;
+    simContext = handleEvent(simContext, currentEvent);
+end
 
 
 end

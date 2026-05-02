@@ -5,6 +5,8 @@ function aircraftTypeInfo = getAircraftTypeInfo()
     %  aircraftTypes struct with fields
     %      .names (string array)
     %      .probabilities (array of doubles) - must sum to one
+    %      .alphas (array of doubles) - type-specific alpha for service time Gamma distribution
+    %      .thetas (array of doubles) - type-specific theta for service time Gamma distribution
     %
     % NOTES
     % - Four aircraft types are used here to represent a heterogeneity of
@@ -24,6 +26,9 @@ function aircraftTypeInfo = getAircraftTypeInfo()
 
     aircraftTypeNames = ["E175", "A320", "B757", "A350"];
     aircraftTypeProbabilities = [0.4, 0.3, 0.2, 0.1];
+    aircraftTypeInfo.thetas = [];
+    aircraftTypeInfo.alphas = [];
+
 
     aircraftTypeInfo = struct();
     aircraftTypeInfo.names = aircraftTypeNames;
