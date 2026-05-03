@@ -64,18 +64,24 @@ function singleDaySimulationResult = runSingleDaySimulation(yearSimulationPlan, 
     externalArrivalEvents = buildAircraftArrivalEventsFromTimestamps(arrivalTimestamps);
 
     % -- Build de-icing servers --
-    deicingServers = buildDeicingServers()
+    deicingServers = buildDeicingServers(yearSimulationPlan.policy);
 
+    % -- Build taxi/taekoff servers --
+    taxiTakeoffServers = buildTaxiTakeoffServers();
 
+    % -- Build event calendar --
     eventCalendar = initializeEventCalendar(externalArrivalEvents);
 
+    % -- Build sim context tracker -- 
     simContext = struct();
+    simContext.policy = yearSimulationPlan.policy;
+    simContext.serviceProcess = yearSimulationPlan.serviceProcess;
     simContext.eventCalendar = eventCalendar;
     simContext.clock = 0;
     simContext.state = buildTemplateStateStruct();
+    simContext.deicingServers = deicingServers;
     simContext.aircraft = [];
     simContext.storm = dayStorm;
-    simContext.deicingServers = 
 
     % ================
     % Core event loop

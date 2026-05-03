@@ -21,17 +21,17 @@ function aircraft = constructAircraft(arrivalEvent, simContext)
     end
     aircraftType = aircraftTypeInfo.names(idxType);
     
-    % -- Compute type-specific Gamma distribution parameters --
-    aircraftAlpha = aircraftTypeInfo.alphas(idxType);
-    aircraftTheta = aircraftTypeInfo.thetas(idxType);
+    % -- Extract type-specific Gamma distribution parameter multipliers --
+    aircraftMeanServiceTimeMultiplier = aircraftTypeInfo.serviceTimeMeanMultipliers(idxType);
+    aircraftServiceTimeCVMultiplier = aircraftTypeInfo.serviceTimeCVMultipliers(idxType);
 
     % -- Populate output struct --
     aircraft = buildTemplateAircraftStruct();
     aircraft.id = arrivalEvent.aircraftID;
     aircraft.type = aircraftType;
     aircraft.initialArrivalTime = arrivalEvent.time;
-    aircraft.serviceTimeAlpha = aircraftAlpha;
-    aircraft.serviceTimeTheta = aircraftTheta;
+    aircraft.serviceTimeMeanMultiplier = aircraftMeanServiceTimeMultiplier;
+    aircraft.serviceTimeCVMultiplier = aircraftServiceTimeCVMultiplier;
     aircraft.currentDeicingQueueEntryTime = arrivalEvent.time;
 
     aircraft.hotLimit = max(30 / simContext.storm.severity, 15); % heuristic choice for HOT limit
