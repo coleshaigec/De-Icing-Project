@@ -35,8 +35,8 @@ function simContext = scheduleDeicingJob(simContext, aircraftID, startTime, serv
     serviceProcessMeanRate = serviceProcess.muDI;
     meanServiceTime = 1 / serviceProcessMeanRate;
 
-    effectiveCV = serviceProcessCV * aircraft.serviceProcessCVMultiplier;
-    effectiveMeanServiceTime = meanServiceTime * aircraft.meanServiceTimeMultiplier;
+    effectiveCV = serviceProcessCV * aircraft.deicingServiceProcessCVMultiplier;
+    effectiveMeanServiceTime = meanServiceTime * aircraft.meanDeicingServiceTimeMultiplier;
 
     serviceTimeAlpha = 1 / effectiveCV^2;
     serviceTimeTheta = effectiveCV ^ 2 * effectiveMeanServiceTime;

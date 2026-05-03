@@ -8,7 +8,7 @@ function simContext = handleDeicingComplete(simContext, deicingCompleteEvent)
     if ~isDeicingQueueEmpty(simContext.state.deicingQueue)
         [nextDeicingAircraftID, updatedDeicingQueue] = popAircraftFromDeicingQueue();
         simContext.state.deicingQueue = updatedDeicingQueue;
-        simContext = scheduleDeicingJob(simContext, nextDeicingAircraftID, deicingCompleteEvent.time, serverID);
+        simContext = scheduleDeicingJob(simContext, nextDeicingAircraftID, deicingCompleteEvent.time, serverID, simContext.serviceProcess);
     else
         simContext.state.deicingServers(serverID).isBusy = false;
     end
@@ -17,8 +17,18 @@ function simContext = handleDeicingComplete(simContext, deicingCompleteEvent)
     % Aircraft state updates
     % =======================
     
+    
+    
     % Steps here:
-    % 1. Have to go implement taxi/takeoff queue
+    % 1. Check if there are any empty taxi/takeoff servers
+    % 2. If YES to above:
+    %      - Assign aircraft to the server and schedule the completion event
+    %      - What are Gamma parameters for this?
+    %    If NO to above:
+    %      - 
+    %    
+    % 3. Schedule completion event -- G/G/k structure matters here!
+    %
 
 
 

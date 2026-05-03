@@ -5,8 +5,8 @@ function aircraftTypeInfo = getAircraftTypeInfo()
     %  aircraftTypes struct with fields
     %      .names (string array)
     %      .probabilities (array of doubles) - must sum to one
-    %      .serviceTimeMeanMultipliers (array of doubles) - type-specific service time distribution mean multiplier
-    %      .serviceTimeCVMultipliers (array of doubles) - type-specific service time distribution coefficient of variation multiplier
+    %      .deicingServiceTimeMeanMultipliers (array of doubles) - type-specific service time distribution mean multiplier
+    %      .deicingServiceTimeCVMultipliers (array of doubles) - type-specific service time distribution coefficient of variation multiplier
     %
     % NOTES
     % - Four aircraft types are used here to represent a heterogeneity of
@@ -26,14 +26,14 @@ function aircraftTypeInfo = getAircraftTypeInfo()
 
     aircraftTypeNames = ["E175", "A320", "B757", "A350"];
     aircraftTypeProbabilities = [0.4, 0.3, 0.2, 0.1];
-    aircraftTypeServiceTimeMeanMultipliers = [0.8, 1, 1.2, 1.6];
-    aircraftTypeServiceTimeCVMultipliers = [0.75, 1.125, 1.25, 1.5];
+    aircraftTypeDeicingServiceTimeMeanMultipliers = [0.8, 1, 1.2, 1.6];
+    aircraftTypeDeicingServiceTimeCVMultipliers = [0.75, 1.125, 1.25, 1.5];
     groundSojournTimeToleranceMultipliers = [0.85, 1, 1.25, 1.5];
 
     aircraftTypeInfo = struct();
     aircraftTypeInfo.names = aircraftTypeNames;
-    aircraftTypeInfo.serviceTimeMeanMultipliers = aircraftTypeServiceTimeMeanMultipliers;
-    aircraftTypeInfo.serviceTimeCVMultipliers = aircraftTypeServiceTimeCVMultipliers;
+    aircraftTypeInfo.deicingServiceTimeMeanMultipliers = aircraftTypeDeicingServiceTimeMeanMultipliers;
+    aircraftTypeInfo.deicingServiceTimeCVMultipliers = aircraftTypeDeicingServiceTimeCVMultipliers;
     aircraftTypeInfo.probabilities = aircraftTypeProbabilities;
     aircraftTypeInfo.groundSojournTimeToleranceMultipliers = groundSojournTimeToleranceMultipliers;
 end
