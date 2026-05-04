@@ -1,5 +1,5 @@
 function analyticApprox = computeSingleDayAnalyticApproximation( ...
-    yearSimulationPlan, dayStorm, delayCostThresholds)
+    yearSimulationPlan, dayStorm, delayCostThresholds, costModel)
     % COMPUTESINGLEDAYANALYTICAPPROXIMATION Computes PSA-based analytic model predictions.
     %
     % DESIGN NOTES
@@ -32,7 +32,7 @@ function analyticApprox = computeSingleDayAnalyticApproximation( ...
     CT = taxiProcess.CT;
 
     % HOT threshold (fixed scalar for speed)
-    T_star = 45;
+    T_star = 60;  
 
     % =========================
     % Time grid
@@ -172,4 +172,8 @@ function analyticApprox = computeSingleDayAnalyticApproximation( ...
     analyticApprox.timeSeries.rhoDI = rhoDI;
     analyticApprox.timeSeries.qHOT = q;
     analyticApprox.timeSeries.E_TT = E_TT;
+
+    % -- Cost --
+    analyticApprox.cost = computeSingleDayAnalyticCost(analyticApprox, dayStorm, costModel);
+
 end

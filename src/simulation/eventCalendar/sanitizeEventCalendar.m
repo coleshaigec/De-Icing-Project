@@ -34,9 +34,9 @@ function eventCalendar = sanitizeEventCalendar(eventCalendar)
         validMask(i) = hasValidTime && hasValidType && hasValidAircraftID && hasValidServerID;
     end
 
-    if any(~validMask)
-        fprintf(2, 'WARNING: Removed %d invalid/template events from event calendar.\n', nnz(~validMask));
-    end
+    % if any(~validMask)
+    %     fprintf(2, 'WARNING: Removed %d invalid/template events from event calendar.\n', nnz(~validMask));
+    % end
 
     eventCalendar.events = events(validMask);
     eventCalendar.isSorted = false;

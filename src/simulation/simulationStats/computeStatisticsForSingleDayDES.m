@@ -1,4 +1,4 @@
-function singleDayStats = computeStatisticsForSingleDayDES(simContext, delayCostThresholds)
+function singleDayStats = computeStatisticsForSingleDayDES(simContext, delayCostThresholds, costModel)
     % COMPUTESTATISTICSFORSINGLEDAYDES Computes results of single-day DES via Monte Carlo estimation.
     %
     % INPUTS
@@ -220,6 +220,7 @@ function singleDayStats = computeStatisticsForSingleDayDES(simContext, delayCost
     arguments
         simContext (1, 1) struct
         delayCostThresholds (1, 3) double {mustBeNonnegative, mustBeFinite}
+        costModel (1, 1) struct
     end
 
     aircraft = simContext.state.aircraft;
@@ -356,6 +357,8 @@ function singleDayStats = computeStatisticsForSingleDayDES(simContext, delayCost
         numel(simContext.state.deicingQueue);
     singleDayStats.diagnostics.finalTaxiTakeoffQueueLength = ...
         numel(simContext.state.taxiTakeoffQueue);
+
+    singleDayStats.cost = computeSingleDayDESCost(singleDayStats, costModel);
 end
 
 function typeStats = computeAircraftTypeStats( ...

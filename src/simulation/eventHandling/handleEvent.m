@@ -30,7 +30,7 @@ function simContext = handleEvent(simContext, currentEvent)
 % end
     
     % Print event-handling logic to test DES
-    printDESDebugState(simContext, currentEvent);
+    % printDESDebugState(simContext, currentEvent);
     
 end
 

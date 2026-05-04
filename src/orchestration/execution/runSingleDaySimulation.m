@@ -51,6 +51,9 @@ function singleDaySimulationResult = runSingleDaySimulation(yearSimulationPlan, 
     %
     % OUTPUT
     %  singleDaySimulationResult struct with fields
+    %      .DES
+    %      .analyticModel
+    %      .simulationParameters
 
     % ===============
     % Initialization
@@ -105,26 +108,23 @@ function singleDaySimulationResult = runSingleDaySimulation(yearSimulationPlan, 
 
     delayCostThresholds = getDelayCostThresholds();
     DESResult = computeStatisticsForSingleDayDES( ...
-    simContext, delayCostThresholds);
-
-
+    simContext, delayCostThresholds, yearSimulationPlan.costModel);
 
     % ======================================
     % Compute predictions of analytic model
     % ======================================
-    analyticModelResult = struct();
-
+    analyticModelResult = computeSingleDayAnalyticApproximation(yearSimulationPlan, dayStorm, delayCostThresholds, yearSimulationPlan.costModel);
 
     % =======================
     % Populate output struct
     % =======================
-
     singleDaySimulationResult = struct(); 
+    singleDaySimulationResult.simulationParameters = struct(); 
+    singleDaySimulationResult.simulationParameters.policy = yearSimulationPlan.policy;
+    singleDaySimulationResult.simulationParameters.arrivalProcess = yearSimulationPlan.arrivalProcess;
+    singleDaySimulationResult.simulationParameters.serviceProcess = yearSimulationPlan.serviceProcess;
+    singleDaySimulationResult.simulationParameters.taxiTakeoffProcess = yearSimulationPlan.taxiTakeoffProcess;
+    singleDaySimulationResult.simulationParameters.storm = dayStorm;
     singleDaySimulationResult.DES = DESResult;
     singleDaySimulationResult.analyticModel = analyticModelResult;
-
-
-    
-    
-
 end
