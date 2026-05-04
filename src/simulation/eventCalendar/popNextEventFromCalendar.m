@@ -1,16 +1,24 @@
-function [nextEvent, eventCalendar] = popNextEventFromCalendar(eventCalendar)
-    % POPNEXTEVENTFROMCALENDAR Removes and returns earliest event.
+function [currentEvent, eventCalendar] = popNextEventFromCalendar(eventCalendar)
 
-    if isempty(eventCalendar.events)
-        error('popNextEventFromCalendar:EmptyCalendar', ...
-            'Cannot pop from an empty event calendar.');
-    end
+    assert(isfield(eventCalendar, "events"), ...
+        "eventCalendar must contain events field.");
+
+    assert(~isempty(eventCalendar.events), ...
+        "Cannot pop event from empty event calendar.");
 
     if ~eventCalendar.isSorted
-        eventCalendar.events = sortEventsByTime(eventCalendar.events);
+        [~, sortIdx] = sort([eventCalendar.events.time]);
+        eventCalendar.events = eventCalendar.events(sortIdx);
         eventCalendar.isSorted = true;
     end
 
-    nextEvent = eventCalendar.events(1);
-    eventCalendar.events = eventCalendar.events(2:end);
+    currentEvent = eventCalendar.events(1);
+
+    assert(isscalar(currentEvent), ...
+        "Popped currentEvent must be scalar.");
+
+    eventCalendar.events(1) = [];
+
+    assert(isscalar(currentEvent.type) || ischar(currentEvent.type), ...
+        sprintf("Popped currentEvent.type must be scalar string or char vector but got %s.", currentEvent.type));
 end
