@@ -9,6 +9,9 @@ function simContext = handleEvent(simContext, currentEvent)
         case "taxiComplete"
             simContext = handleTaxiComplete(simContext, currentEvent);
 
+        case "hotViolatorArrival"
+            simContext = handleHOTViolatorArrival(simContext, currentEvent);
+
         otherwise
             error('handleEvent:UnknownEventType', ...
                 'Unknown event type: %s', currentEvent.eventType);
