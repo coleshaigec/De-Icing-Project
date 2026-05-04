@@ -1,0 +1,14 @@
+function simContext = scheduleTaxiTakeoffJob(simContext, aircraftID, startTime, serverIndex)
+    % SCHEDULETAXITAKEOFFJOB Schedules taxiComplete event. 
+    %
+    %
+    % Mechanically: 
+    % - Construct the T/T event and add it to the queue
+    % - Timestamp the aircraft appropriately
+    % 
+    % Step 1: Sample the service time -- assume iid gamma
+    % Step 2: Construct the event struct
+    % Step 3: Enqueue it
+    % Step 4: Update aircraft location to taxi/takeoff
+    
+end

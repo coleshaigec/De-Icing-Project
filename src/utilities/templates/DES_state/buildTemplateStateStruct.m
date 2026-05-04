@@ -7,6 +7,7 @@ function templateStateStruct = buildTemplateStateStruct()
     %      .deicingQueue (array of aircraft IDs)
     %      .taxiTakeoffSubsystem (array of aircraft IDs)
     %      .deicingServers (array of server structs)
+    %      .taxiTakeoffServers (array of server structs)
 
     templateStateStruct = struct();
     templateStateStruct.aircraft = buildTemplateAircraftStruct();

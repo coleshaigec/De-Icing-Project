@@ -76,10 +76,12 @@ function singleDaySimulationResult = runSingleDaySimulation(yearSimulationPlan, 
     simContext = struct();
     simContext.policy = yearSimulationPlan.policy;
     simContext.serviceProcess = yearSimulationPlan.serviceProcess;
+    simContext.taxiTakeoffProcess = yearSimulationPlan.taxiTakeoffProcess;
     simContext.eventCalendar = eventCalendar;
     simContext.clock = 0;
     simContext.state = buildTemplateStateStruct();
-    simContext.deicingServers = deicingServers;
+    simContext.state.deicingServers = deicingServers;
+    simContext.state.taxiTakeoffServers = taxiTakeoffServers;
     simContext.aircraft = [];
     simContext.storm = dayStorm;
 
