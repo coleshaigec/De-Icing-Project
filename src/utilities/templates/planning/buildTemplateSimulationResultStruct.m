@@ -4,4 +4,7 @@ function templateSimulationResultStruct = buildTemplateSimulationResultStruct()
     % OUTPUT
     %  templateSimulationResultStruct struct with fields
     %      .
+
+    templateSimulationResultStruct = struct();
+
 end

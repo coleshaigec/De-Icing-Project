@@ -10,11 +10,11 @@ function aircraft = constructAircraft(arrivalEvent, simContext)
 
     %  -- Pick aircraft type by random sampling --
     typeSample = rand(1);
-    if isbetween(typeSample, 0, probabilityThresholds(1))
+    if typeSample <= probabilityThresholds(1)
         idxType = 1;
-    elseif isbetween(typeSample, probabilityThresholds(1), probabilityThresholds(2))
+    elseif typeSample <= probabilityThresholds(2)
         idxType = 2;
-    elseif isbetween(typeSample, probabilityThresholds(2), probabilityThresholds(3))
+    elseif typeSample <= probabilityThresholds(3)
         idxType = 3;
     else
         idxType = 4;

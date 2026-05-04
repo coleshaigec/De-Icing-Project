@@ -22,6 +22,8 @@ function simulationPlans = unpackSimulationParameterGrids()
     % - runSingleSimulation should be interpreted as a day-level simulation
     %   utility, not as an annual simulation utility.
 
+    tic
+    fprintf('Unpacking simulation plans.\n')
     simulationParameterGrids = buildSimulationParameterGridsForAnalyticModel();
 
     kValues = simulationParameterGrids.policies.kValues;
@@ -106,4 +108,8 @@ function simulationPlans = unpackSimulationParameterGrids()
 
     assert(planIndex == numSimulationPlans, ...
         'Number of generated simulation plans does not match preallocated size.');
+
+    fprintf('Simulation plan unpacking complete.\n')
+    toc;
+    fprintf('\n');
 end

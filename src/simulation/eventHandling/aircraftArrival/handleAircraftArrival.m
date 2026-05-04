@@ -10,7 +10,7 @@ function simContext = handleAircraftArrival(simContext, arrivalEvent)
     %  simContext struct with fields
 
     % -- Construct aircraft and push to state --
-    newAircraft = constructAircraft(arrivalEvent);
+    newAircraft = constructAircraft(arrivalEvent, simContext);
     simContext.state = pushAircraftToState(simContext.state, newAircraft);
 
     % -- Check for empty de-icing servers and decide where to send the aircraft --
