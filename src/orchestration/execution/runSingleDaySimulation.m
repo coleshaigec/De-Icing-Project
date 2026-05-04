@@ -82,16 +82,23 @@ function singleDaySimulationResult = runSingleDaySimulation(yearSimulationPlan, 
     simContext.state = buildTemplateStateStruct();
     simContext.state.deicingServers = deicingServers;
     simContext.state.taxiTakeoffServers = taxiTakeoffServers;
-    simContext.aircraft = [];
     simContext.storm = dayStorm;
+    simContext = sanitizeSimQueues(simContext);
 
     % ================
     % Core event loop
     % ================
     while ~isEventCalendarEmpty(simContext.eventCalendar)
+    
+        simContext.eventCalendar = sanitizeEventCalendar(simContext.eventCalendar);
+    
+        if isEventCalendarEmpty(simContext.eventCalendar)
+            break;
+        end
+     
         [currentEvent, simContext.eventCalendar] = popNextEventFromCalendar( ...
             simContext.eventCalendar);
-    
+     
         simContext.clock = currentEvent.time;
         simContext = handleEvent(simContext, currentEvent);
     end

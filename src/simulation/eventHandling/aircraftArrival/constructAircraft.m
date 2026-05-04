@@ -36,6 +36,11 @@ function aircraft = constructAircraft(arrivalEvent, simContext)
 
     aircraft.hotLimit = max(30 / simContext.storm.severity, 15); % heuristic choice for HOT limit
     aircraft.numDeicingCyclesCompleted = 0;
+    aircraft.totalDeicingQueueingDelay = 0;
+    aircraft.totalDeicingServiceTime = 0;
+    aircraft.totalTaxiTakeoffQueueingDelay = 0;
+    aircraft.totalTaxiTakeoffServiceTime = 0;
+
     aircraft.STD = arrivalEvent.time + ...
         getAllowableBaselineGroundSojournTime() * aircraftTypeInfo.groundSojournTimeToleranceMultipliers(idxType);
     aircraft.actualTakeoffTime = NaN;

@@ -1,9 +1,14 @@
 function [aircraftID, deicingQueue] = popAircraftFromDeicingQueue(deicingQueue)
-    if isempty(deicingQueue)
-        error('popAircraftFromDeicingQueue:EmptyQueue', ...
-            'Cannot pop from an empty deicing queue.');
-    end
+
+    assert(~isempty(deicingQueue), ...
+        'popAircraftFromDeicingQueue:EmptyQueue', ...
+        'Cannot pop from empty deicing queue.');
 
     aircraftID = deicingQueue(1);
+
+    assert(isscalar(aircraftID) && aircraftID > 0 && isfinite(aircraftID), ...
+        'popAircraftFromDeicingQueue:InvalidAircraftID', ...
+        'Invalid aircraftID popped from deicing queue: %g.', aircraftID);
+
     deicingQueue = deicingQueue(2:end);
 end

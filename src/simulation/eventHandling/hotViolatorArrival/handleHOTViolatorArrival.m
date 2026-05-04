@@ -2,6 +2,9 @@ function simContext = handleHOTViolatorArrival(simContext, hotViolatorArrivalEve
     % HANDLEHOTVIOLATORARRIVAL Handles return of HOT violator to de-icing.
 
     % Get HOT violator aircraft and set location
+    aircraftID = hotViolatorArrivalEvent.aircraftID;
+    assert(isscalar(aircraftID) && aircraftID > 0 && isfinite(aircraftID), ...
+    'Invalid aircraft ID in HOT violator arrival: %g', aircraftID);
     [idxHOTViolatorAircraft, hotViolatorAircraft] = findAircraftById(simContext.state, hotViolatorArrivalEvent.aircraftID);
     hotViolatorAircraft.currentLocation = "deicing";
     simContext.state.aircraft(idxHOTViolatorAircraft) = hotViolatorAircraft;
@@ -12,7 +15,7 @@ function simContext = handleHOTViolatorArrival(simContext, hotViolatorArrivalEve
     if ~isempty(idleIdx)
         % Empty server detected - schedule deicing job
         simContext = scheduleDeicingJob(simContext, hotViolatorArrivalEvent.aircraftID, ...
-            hotViolatorArrivalEvent.time, idleIdx, simContext.serviceProcess);
+            hotViolatorArrivalEvent.time, idleIdx);
     else 
         % No available server detected - enqueue the aircraft
         simContext.state.deicingQueue = pushAircraftToDeicingQueue( ...
@@ -20,4 +23,9 @@ function simContext = handleHOTViolatorArrival(simContext, hotViolatorArrivalEve
         hotViolatorAircraft.currentDeicingQueueEntryTime = hotViolatorArrivalEvent.time;
         simContext.state.aircraft(idxHOTViolatorAircraft) = hotViolatorAircraft;
     end
+
+    assert(all(simContext.state.taxiTakeoffQueue > 0), ...
+    'HOT handler corrupted taxi/takeoff queue.');
+assert(all(simContext.state.deicingQueue > 0), ...
+    'HOT handler corrupted deicing queue.');
 end

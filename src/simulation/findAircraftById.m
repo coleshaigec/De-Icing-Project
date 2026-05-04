@@ -25,10 +25,10 @@ function [idx, aircraft] = findAircraftById(stateTracker, aircraftId)
     % Find match
     idx = find(allIds == aircraftId, 1, 'first');
 
-    if isempty(idx)
-        aircraft = [];
-    else
-        aircraft = stateTracker.aircraft(idx);
-    end
+    assert(~isempty(idx), ...
+    'findAircraftById:NotFound', ...
+    'Aircraft ID %d not found.', aircraftId);
+
+    aircraft = stateTracker.aircraft(idx);
 
 end

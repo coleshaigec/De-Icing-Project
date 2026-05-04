@@ -23,6 +23,7 @@ function simContext = handleTaxiComplete(simContext, taxiCompleteEvent)
         % If there's a job waiting, start it and schedule completion
         [nextTaxiTakeoffAircraftID, taxiTakeoffQueue] = popAircraftFromTaxiTakeoffQueue(simContext.state.taxiTakeoffQueue);
         simContext.state.taxiTakeoffQueue = taxiTakeoffQueue;
+
         simContext = scheduleTaxiTakeoffJob(simContext, nextTaxiTakeoffAircraftID, taxiCompleteEvent.time, taxiCompleteEvent.serverID);
     end
 
@@ -42,6 +43,4 @@ function simContext = handleTaxiComplete(simContext, taxiCompleteEvent)
         taxiCompleteAircraft.actualTakeoffTime = taxiCompleteEvent.time;
         simContext.state.aircraft(idxTaxiCompleteAircraft) = taxiCompleteAircraft;
     end
-
-    % -- Update stats, BLANK FOR NOW -- 
 end

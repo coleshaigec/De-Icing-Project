@@ -1,4 +1,4 @@
-function simContext = scheduleDeicingJob(simContext, aircraftID, startTime, serverIndex, serviceProcess)
+function simContext = scheduleDeicingJob(simContext, aircraftID, startTime, serverIndex)
     % SCHEDULEDEICINGJOB Schedules a deicing completion event for a specified aircraft.
     
     % -- Assign aircraft to specified deicing server --
@@ -10,6 +10,7 @@ function simContext = scheduleDeicingJob(simContext, aircraftID, startTime, serv
     [idxAircraft, aircraft] = findAircraftById(simContext.state, aircraftID);
     
     % -- Validation --
+    serviceProcess = simContext.serviceProcess;
     assert(~isempty(idxAircraft), ...
     'scheduleDeicingJob:AircraftNotFound', ...
     'Aircraft ID not found in state tracker.');
@@ -21,22 +22,22 @@ function simContext = scheduleDeicingJob(simContext, aircraftID, startTime, serv
     assert(serviceProcess.Cs > 0, ...
         'scheduleDeicingJob:InvalidServiceCV', ...
         'serviceProcess.Cs must be positive.');
-    
-    assert(aircraft.deicingServiceProcessCVMultiplier > 0, ...
-    'scheduleDeicingJob:InvalidAircraftCVMultiplier', ...
-    'Aircraft deicingServiceProcessCVMultiplier must be positive.');
 
-    assert(aircraft.meanDeicingServiceTimeMultiplier > 0, ...
+    assert(aircraft.deicingServiceTimeCVMultiplier > 0, ...
+    'scheduleDeicingJob:InvalidAircraftCVMultiplier', ...
+    'Aircraft deicingServiceTimeCVMultiplier must be positive.');
+
+    assert(aircraft.deicingServiceTimeMeanMultiplier > 0, ...
         'scheduleDeicingJob:InvalidAircraftMeanMultiplier', ...
-        'Aircraft meanDeicingServiceTimeMultiplier must be positive.');
+        'Aircraft deicingServiceTimeMeanMultiplier must be positive.');
 
     % -- Use Gamma distribution parameters from aircraft and service process to sample service time --
     serviceProcessCV = serviceProcess.Cs;
     serviceProcessMeanRate = serviceProcess.muDI;
     meanServiceTime = 1 / serviceProcessMeanRate;
 
-    effectiveCV = serviceProcessCV * aircraft.deicingServiceProcessCVMultiplier;
-    effectiveMeanServiceTime = meanServiceTime * aircraft.meanDeicingServiceTimeMultiplier;
+    effectiveCV = serviceProcessCV * aircraft.deicingServiceTimeCVMultiplier;
+    effectiveMeanServiceTime = meanServiceTime * aircraft.deicingServiceTimeMeanMultiplier;
 
     serviceTimeAlpha = 1 / effectiveCV^2;
     serviceTimeTheta = effectiveCV ^ 2 * effectiveMeanServiceTime;
@@ -53,4 +54,7 @@ function simContext = scheduleDeicingJob(simContext, aircraftID, startTime, serv
 
     % -- Update aircraft state --
     simContext.state.aircraft(idxAircraft).currentDeicingServiceStartTime = startTime;
+    simContext.state.aircraft(idxAircraft).totalDeicingServiceTime = ...
+        simContext.state.aircraft(idxAircraft).totalDeicingServiceTime + ...
+        deicingServiceTime;
 end

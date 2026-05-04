@@ -10,9 +10,9 @@ function templateStateStruct = buildTemplateStateStruct()
     %      .taxiTakeoffServers (array of server structs)
 
     templateStateStruct = struct();
-    templateStateStruct.aircraft = buildTemplateAircraftStruct();
-    templateStateStruct.deicingQueue = [];
-    templateStateStruct.taxiTakeoffQueue = [];
+    templateStateStruct.aircraft = repmat(buildTemplateAircraftStruct(), 0, 1);
     templateStateStruct.taxiTakeoffServers = [];
     templateStateStruct.deicingServers = [];
+    templateStateStruct.taxiTakeoffQueue = zeros(0, 1);
+    templateStateStruct.deicingQueue = zeros(0, 1);
 end
