@@ -85,9 +85,9 @@ function singleDaySimulationResult = runSingleDaySimulation(yearSimulationPlan, 
     simContext.storm = dayStorm;
     simContext = sanitizeSimQueues(simContext);
 
-    % ================
-    % Core event loop
-    % ================
+    % ====================
+    % Core DES event loop
+    % ====================
     while ~isEventCalendarEmpty(simContext.eventCalendar)
     
         simContext.eventCalendar = sanitizeEventCalendar(simContext.eventCalendar);
@@ -103,5 +103,28 @@ function singleDaySimulationResult = runSingleDaySimulation(yearSimulationPlan, 
         simContext = handleEvent(simContext, currentEvent);
     end
 
+    delayCostThresholds = getDelayCostThresholds();
+    DESResult = computeStatisticsForSingleDayDES( ...
+    simContext, delayCostThresholds);
+
+
+
+    % ======================================
+    % Compute predictions of analytic model
+    % ======================================
+    analyticModelResult = struct();
+
+
+    % =======================
+    % Populate output struct
+    % =======================
+
+    singleDaySimulationResult = struct(); 
+    singleDaySimulationResult.DES = DESResult;
+    singleDaySimulationResult.analyticModel = analyticModelResult;
+
+
+    
+    
 
 end
