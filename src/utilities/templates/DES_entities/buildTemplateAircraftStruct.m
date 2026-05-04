@@ -13,7 +13,7 @@ function templateAircraftStruct = buildTemplateAircraftStruct()
     %      .numDeicingCyclesCompleted
     %      .STD
     %      .takeoffTime
-    %      .currentLocation ("deicing", "taxi", or "departed")
+    %      .currentLocation ("deicing", "taxi", "departed", or "returningToDeicing")
 
     templateAircraftStruct = struct();
     templateAircraftStruct.id = NaN;
