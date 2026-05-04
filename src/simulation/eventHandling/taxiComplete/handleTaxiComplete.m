@@ -37,38 +37,10 @@ function simContext = handleTaxiComplete(simContext, taxiCompleteEvent)
     isHOTViolation = aircraftTaxiTakeoffSojournTime > taxiCompleteAircraft.hotLimit;
 
     % Step 2: If HOT violation, send back to de-icing, else take off
-    % NEED DEDICATED EVENT HANDLER FOR HOT VIOLATOR RECIRCULATION!
     if isHOTViolation
-        % Schedule arrival event back at de-icing, and let that handler
-        % take care of it!
-        % Aircraft must taxi back to de-icing after HOT violation
-        % Sample another Gamma taxi/takeoff service time to reflect this
-        
-
-        % BELOW GOES INTO THE SCHEDULER FOR HOT VIOLATOR RECIRCULATION
-
-        % meanTaxiTakeoffServiceTime = simContext.taxiTakeoffProcess.T0;
-        % taxiTakeoffServiceTimeCV = simContext.taxiTakeoffProcess.CT;
-        % 
-        % taxiTakeoffServiceTimeAlpha = 1 / taxiTakeoffServiceTimeCV^2;
-        % taxiTakeoffServiceTimeTheta = meanTaxiTakeoffServiceTime / taxiTakeoffServiceTimeAlpha;
-        % 
-        % taxiTakeoffServiceTimeSample = gamrnd(taxiTakeoffServiceTimeAlpha, taxiTakeoffServiceTimeTheta);
-
-        taxiCompleteAircraft.currentLocation = "deicing";
-
         simContext = scheduleHOTViolatorArrival(simContext, taxiCompleteEvent.aircraftID, startTime);
         
 
-        % % Check if a de-icing server is available
-        % % If yes, schedule the job
-        % % If no, enqueue the aircraft at de-icing
-        % idleIdx = find(~[simContext.state.deicingServers.isBusy], 1, 'first');
-        % if ~isempty(idleIdx)
-        %     simContext.state.deicingServers(idleIdx).isBusy = true;
-        %     simContext.state.deicingServers(idleIdx).currentAircraftId = true;
-        %     simContext.state.deicingServers(idleIdx).isBusy = true;
-        % end
     else
     end
 
