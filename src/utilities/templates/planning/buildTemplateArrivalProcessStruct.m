@@ -1,5 +1,5 @@
 function templateArrivalProcessScenarioStruct = buildTemplateArrivalProcessStruct()
-    % BUILDTEMPLATEARRIVALPROCESSSCENARIOSTRUCT Builds template arrival process scenario container for preallocation.
+    % BUILDTEMPLATEARRIVALPROCESSSTRUCT Builds template arrival process scenario container for preallocation.
     %
     % OUTPUT
     %  templateArrivalProcessScenarioStruct struct with fields

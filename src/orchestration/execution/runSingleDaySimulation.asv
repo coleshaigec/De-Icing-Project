@@ -127,20 +127,19 @@ function singleDaySimulationResult = runSingleDaySimulation(yearSimulationPlan, 
     singleDaySimulationResult.simulationParameters.storm = dayStorm;
     singleDaySimulationResult.DES = DESResult;
     singleDaySimulationResult.analyticModel = analyticModelResult;
-% 
-%          S = singleDaySimulationResult;
-%     fields = fieldnames(S);
-% 
-% % Loop through fields and print values
-% for i = 1:length(fields)
-%     fieldName = fields{i};
-%     value = S.(fieldName); % Dynamic field referencing
-%     fprintf('%s: ', fieldName);
-%     disp(value);
-% end
-% error('done')
 
-% printStructRecursive(singleDaySimulationResult, "  ");
+         S = singleDaySimulationResult;
+    fields = fieldnames(S);
+
+% Loop through fields and print values
+for i = 1:length(fields)
+    fieldName = fields{i};
+    value = S.(fieldName); % Dynamic field referencing
+    fprintf('%s: ', fieldName);
+    disp(value);
+end
+error('done')
+
     
 end
 
