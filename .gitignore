@@ -1,1 +1,4 @@
 consoleOutput*.txt
+outputs/
+*.csv
+.DS_Store
