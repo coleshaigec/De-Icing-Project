@@ -42,7 +42,7 @@ function simContext = handleTaxiComplete(simContext, taxiCompleteEvent)
         numHOTViolations = simContext.state.aircraft(idxTaxiCompleteAircraft).numHOTViolations;
         if numHOTViolations > getAllowableHOTViolationsBeforeCancellation()
             % If allowable number of HOT violations exceeded, cancel the flight 
-            simContext = cancelFlight(simContext, taxiCompleteEvent.aircraftID);
+            simContext = cancelFlight(simContext, idxTaxiCompleteAircraft, taxiCompleteEvent.time);
         else
             % If aircraft is within HOT violation limits, send it back to de-icing
             simContext = scheduleHOTViolatorArrival(simContext, taxiCompleteEvent.aircraftID, taxiCompleteEvent.time);

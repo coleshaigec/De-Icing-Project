@@ -32,7 +32,9 @@ function templateAircraftStruct = buildTemplateAircraftStruct()
     templateAircraftStruct.totalDeicingServiceTime = NaN;
     templateAircraftStruct.totalTaxiTakeoffQueueingDelay = NaN;
     templateAircraftStruct.totalTaxiTakeoffServiceTime = NaN;
+    templateAircraftStruct.isCancelled = false;
     templateAircraftStruct.STD = NaN;
     templateAircraftStruct.actualTakeoffTime = NaN;
+    templateAircraftStruct.cancellationTime = NaN;
     templateAircraftStruct.currentLocation = "";
 end
