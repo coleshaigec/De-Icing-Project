@@ -1,30 +1,31 @@
-function annualResults = aggregateDayLevelSimulationResults(dayLevelResults, simulationPlan)
+function annualResults = aggregateSingleModelDayLevelSimulationResults(dayLevelResults, simulationPlan)
     % AGGREGATEDAYLEVELSIMULATIONRESULTS Aggregates day-level simulation results.
-    %
-    % INPUT
-    %  dayLevelResults struct array
-    %      Array of day-level DES statistics or analytic approximations.
-    %
-    %  simulationPlan struct
-    %      Full simulation plan attached for downstream CSV traceability.
-    %
-    % OUTPUT
-    %  annualResults struct
-    %      Annual aggregate results computed by summing extensive quantities
-    %      and averaging / percentile-aggregating intensive day-level quantities.
 
     arguments
         dayLevelResults (:, 1) struct
         simulationPlan (1, 1) struct
     end
 
-    
     if isempty(dayLevelResults)
         annualResults = buildEmptyAnnualResults(simulationPlan);
         return;
     end
 
     numDays = numel(dayLevelResults);
+
+    % -- Status / cancellation --
+    numDepartures = extractNumericField(dayLevelResults, ...
+        ["status", "numDepartures"], ...
+        ["volume", "numDepartures"]);
+
+    numCancellations = extractNumericField(dayLevelResults, ...
+        ["cancellation", "numCancellations"], ...
+        ["status", "numCancellations"], ...
+        ["volume", "numCancellations"]);
+
+    cancellationRate = extractNumericField(dayLevelResults, ...
+        ["cancellation", "cancellationRate"], ...
+        ["status", "cancellationRate"]);
 
     % -- Volume --
     numExternalArrivals = extractNumericField(dayLevelResults, ...
@@ -160,27 +161,38 @@ function annualResults = aggregateDayLevelSimulationResults(dayLevelResults, sim
     delayCost = extractNumericField(dayLevelResults, ["cost", "delayCost"]);
     fluidCost = extractNumericField(dayLevelResults, ["cost", "fluidCost"]);
     activationCost = extractNumericField(dayLevelResults, ["cost", "activationCost"]);
+    cancellationCost = extractNumericField(dayLevelResults, ["cost", "cancellationCost"]);
     totalOperatingCost = extractNumericField(dayLevelResults, ["cost", "totalOperatingCost"]);
 
     % -- Diagnostics --
     allAircraftDeparted = extractLogicalField(dayLevelResults, ...
         ["diagnostics", "allAircraftDeparted"]);
 
+    allAircraftResolved = extractLogicalField(dayLevelResults, ...
+        ["diagnostics", "allAircraftResolved"]);
+
     finalEventCalendarEmpty = extractLogicalField(dayLevelResults, ...
         ["diagnostics", "finalEventCalendarEmpty"]);
 
     % -- Build annual result --
-    annualResults = struct();
-
-    annualResults.numDays = numDays;
-
     annualResults = buildTemplateSimulationResultStruct();
 
     annualResults.numDays = numDays;
     annualResults.policy = simulationPlan.policy;
 
+    annualResults.status = struct();
+    annualResults.status.totalDepartures = sumIgnoringNaN(numDepartures);
+    annualResults.status.totalCancellations = sumIgnoringNaN(numCancellations);
+    annualResults.status.meanDeparturesPerDay = meanIgnoringNaN(numDepartures);
+    annualResults.status.meanCancellationsPerDay = meanIgnoringNaN(numCancellations);
+    annualResults.status.p95CancellationsPerDay = percentileIgnoringNaN(numCancellations, 95);
+    annualResults.status.maxCancellationsPerDay = maxIgnoringNaN(numCancellations);
+    annualResults.status.numDaysWithCancellations = sumLogicalCondition(numCancellations > 0);
+
     annualResults.volume = struct();
     annualResults.volume.totalExternalArrivals = sumIgnoringNaN(numExternalArrivals);
+    annualResults.volume.totalDepartures = annualResults.status.totalDepartures;
+    annualResults.volume.totalCancellations = annualResults.status.totalCancellations;
     annualResults.volume.totalDeicingJobs = sumIgnoringNaN(totalDeicingJobs);
     annualResults.volume.totalHOTViolations = sumIgnoringNaN(numHOTViolations);
 
@@ -210,6 +222,21 @@ function annualResults = aggregateDayLevelSimulationResults(dayLevelResults, sim
     annualResults.volume.hotViolationRatePerDeicingJob = safeDivide( ...
         annualResults.volume.totalHOTViolations, ...
         annualResults.volume.totalDeicingJobs);
+
+    annualResults.cancellation = struct();
+    annualResults.cancellation.totalCancellations = sumIgnoringNaN(numCancellations);
+    annualResults.cancellation.meanCancellationsPerDay = meanIgnoringNaN(numCancellations);
+    annualResults.cancellation.stdCancellationsPerDay = stdIgnoringNaN(numCancellations);
+    annualResults.cancellation.p90CancellationsPerDay = percentileIgnoringNaN(numCancellations, 90);
+    annualResults.cancellation.p95CancellationsPerDay = percentileIgnoringNaN(numCancellations, 95);
+    annualResults.cancellation.p99CancellationsPerDay = percentileIgnoringNaN(numCancellations, 99);
+    annualResults.cancellation.maxCancellationsPerDay = maxIgnoringNaN(numCancellations);
+    annualResults.cancellation.numDaysWithCancellations = sumLogicalCondition(numCancellations > 0);
+    annualResults.cancellation.cancellationRatePerExternalAircraft = safeDivide( ...
+        annualResults.cancellation.totalCancellations, ...
+        annualResults.volume.totalExternalArrivals);
+    annualResults.cancellation.meanDailyCancellationRate = meanIgnoringNaN(cancellationRate);
+    annualResults.cancellation.totalCancellationCost = sumIgnoringNaN(cancellationCost);
 
     annualResults.deicing = struct();
     annualResults.deicing.totalQueueingDelay = sumIgnoringNaN(totalDeicingQueueingDelay);
@@ -273,6 +300,7 @@ function annualResults = aggregateDayLevelSimulationResults(dayLevelResults, sim
     annualResults.cost.totalDelayCost = sumIgnoringNaN(delayCost);
     annualResults.cost.totalFluidCost = sumIgnoringNaN(fluidCost);
     annualResults.cost.totalActivationCost = sumIgnoringNaN(activationCost);
+    annualResults.cost.totalCancellationCost = sumIgnoringNaN(cancellationCost);
     annualResults.cost.totalOperatingCost = sumIgnoringNaN(totalOperatingCost);
     annualResults.cost.meanDailyOperatingCost = meanIgnoringNaN(totalOperatingCost);
     annualResults.cost.stdDailyOperatingCost = stdIgnoringNaN(totalOperatingCost);
@@ -286,7 +314,8 @@ function annualResults = aggregateDayLevelSimulationResults(dayLevelResults, sim
     annualResults.diagnostics = struct();
     annualResults.diagnostics.numMissingOperatingCostDays = sum(isnan(totalOperatingCost));
     annualResults.diagnostics.numMissingVolumeDays = sum(isnan(numExternalArrivals));
-    annualResults.diagnostics.numIncompleteDESDays = sumLogicalCondition(allAircraftDeparted == 0);
+    annualResults.diagnostics.numNonDepartedDays = sumLogicalCondition(allAircraftDeparted == 0);
+    annualResults.diagnostics.numUnresolvedDESDays = sumLogicalCondition(allAircraftResolved == 0);
     annualResults.diagnostics.numNonemptyTerminalCalendars = sumLogicalCondition(finalEventCalendarEmpty == 0);
 
     annualResults.simulationPlan = simulationPlan;
@@ -357,6 +386,7 @@ function [foundValue, value] = tryGetNestedAnyField(inputStruct, fieldPath)
     value = currentValue;
 end
 
+
 function total = sumIgnoringNaN(values)
     validMask = ~isnan(values);
     total = sum(values(validMask));
@@ -364,7 +394,6 @@ end
 
 function average = meanIgnoringNaN(values)
     validMask = ~isnan(values);
-
     if ~any(validMask)
         average = NaN;
     else
@@ -374,7 +403,6 @@ end
 
 function standardDeviation = stdIgnoringNaN(values)
     validMask = ~isnan(values);
-
     if ~any(validMask)
         standardDeviation = NaN;
     else
@@ -384,7 +412,6 @@ end
 
 function percentileValue = percentileIgnoringNaN(values, percentile)
     validMask = ~isnan(values);
-
     if ~any(validMask)
         percentileValue = NaN;
     else
@@ -394,7 +421,6 @@ end
 
 function minimum = minIgnoringNaN(values)
     validMask = ~isnan(values);
-
     if ~any(validMask)
         minimum = NaN;
     else
@@ -404,7 +430,6 @@ end
 
 function maximum = maxIgnoringNaN(values)
     validMask = ~isnan(values);
-
     if ~any(validMask)
         maximum = NaN;
     else
@@ -428,7 +453,9 @@ end
 function annualResults = buildEmptyAnnualResults(simulationPlan)
     annualResults = struct();
     annualResults.numDays = 0;
+    annualResults.status = struct();
     annualResults.volume = struct();
+    annualResults.cancellation = struct();
     annualResults.deicing = struct();
     annualResults.taxiTakeoff = struct();
     annualResults.groundSojourn = struct();

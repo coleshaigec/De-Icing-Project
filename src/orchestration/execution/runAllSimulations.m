@@ -16,5 +16,8 @@ function allSimulationResults = runAllSimulations(simulationPlans)
         fprintf('Commencing simulation %i of %i.\n', i, numSimulationsToRun);
         allSimulationResults(i) = runSingleYearSimulation(simulationPlans(i));
         fprintf('Simulation %i completed.\n\n', i);
+        if mod(i, 200) == 0
+            clc;
+        end
     end
 end

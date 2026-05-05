@@ -33,26 +33,54 @@ function simContext = handleTaxiComplete(simContext, taxiCompleteEvent)
     aircraftTaxiTakeoffSojournTime = taxiCompleteEvent.time - taxiCompleteAircraft.currentDeicingServiceCompletionTime;
     isHOTViolation = aircraftTaxiTakeoffSojournTime > taxiCompleteAircraft.hotLimit;
 
+
+   if isHOTViolation
+       simContext.state.aircraft(idxTaxiCompleteAircraft).numHOTViolations = ...
+           simContext.state.aircraft(idxTaxiCompleteAircraft).numHOTViolations + 1;
+   
+       numHOTViolations = ...
+           simContext.state.aircraft(idxTaxiCompleteAircraft).numHOTViolations;
+   
+       if numHOTViolations > getAllowableHOTViolationsBeforeCancellation()
+           simContext = cancelFlight( ...
+               simContext, ...
+               idxTaxiCompleteAircraft, ...
+               taxiCompleteEvent.time);
+       else
+           simContext.state.aircraft(idxTaxiCompleteAircraft).currentLocation = ...
+               "returningToDeicing";
+   
+           simContext = scheduleHOTViolatorArrival( ...
+               simContext, ...
+               taxiCompleteEvent.aircraftID, ...
+               taxiCompleteEvent.time);
+       end
+   else
+       simContext.state.aircraft(idxTaxiCompleteAircraft).currentLocation = "departed";
+       simContext.state.aircraft(idxTaxiCompleteAircraft).actualTakeoffTime = ...
+           taxiCompleteEvent.time;
+   end
+
     % Step 2: Handle HOT violators depending on accumulated violation count
     % Aircraft within HOT take off at this point
-    if isHOTViolation
-        simContext.state.aircraft(idxTaxiCompleteAircraft).numHOTViolations = ...
-            simContext.state.aircraft(idxTaxiCompleteAircraft).numHOTViolations + 1;
-        
-        numHOTViolations = simContext.state.aircraft(idxTaxiCompleteAircraft).numHOTViolations;
-        if numHOTViolations > getAllowableHOTViolationsBeforeCancellation()
-            % If allowable number of HOT violations exceeded, cancel the flight 
-            simContext = cancelFlight(simContext, idxTaxiCompleteAircraft, taxiCompleteEvent.time);
-        else
-            % If aircraft is within HOT violation limits, send it back to de-icing
-            simContext = scheduleHOTViolatorArrival(simContext, taxiCompleteEvent.aircraftID, taxiCompleteEvent.time);
-            taxiCompleteAircraft.currentLocation = "returningToDeicing";
-            simContext.state.aircraft(idxTaxiCompleteAircraft) = taxiCompleteAircraft;
-        end
-    else
-        % If aircraft is within HOT, it takes off
-        taxiCompleteAircraft.currentLocation = "departed";
-        taxiCompleteAircraft.actualTakeoffTime = taxiCompleteEvent.time;
-        simContext.state.aircraft(idxTaxiCompleteAircraft) = taxiCompleteAircraft;
-    end
+    % if isHOTViolation
+    %     simContext.state.aircraft(idxTaxiCompleteAircraft).numHOTViolations = ...
+    %         simContext.state.aircraft(idxTaxiCompleteAircraft).numHOTViolations + 1;
+    % 
+    %     numHOTViolations = simContext.state.aircraft(idxTaxiCompleteAircraft).numHOTViolations;
+    %     if numHOTViolations > getAllowableHOTViolationsBeforeCancellation()
+    %         % If allowable number of HOT violations exceeded, cancel the flight 
+    %         simContext = cancelFlight(simContext, idxTaxiCompleteAircraft, taxiCompleteEvent.time);
+    %     else
+    %         % If aircraft is within HOT violation limits, send it back to de-icing
+    %         simContext = scheduleHOTViolatorArrival(simContext, taxiCompleteEvent.aircraftID, taxiCompleteEvent.time);
+    %         taxiCompleteAircraft.currentLocation = "returningToDeicing";
+    %         simContext.state.aircraft(idxTaxiCompleteAircraft) = taxiCompleteAircraft;
+    %     end
+    % else
+    %     % If aircraft is within HOT, it takes off
+    %     taxiCompleteAircraft.currentLocation = "departed";
+    %     taxiCompleteAircraft.actualTakeoffTime = taxiCompleteEvent.time;
+    %     simContext.state.aircraft(idxTaxiCompleteAircraft) = taxiCompleteAircraft;
+    % end
 end

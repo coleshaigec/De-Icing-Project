@@ -1,17 +1,5 @@
 function outputFilePath = writeSimulationResultsToCSV(simulationResults)
     % WRITESIMULATIONRESULTSTOCSV Writes paired annual DES/analytic results to CSV.
-    %
-    % INPUT
-    %  simulationResults struct array
-    %      Annual simulation results returned by runSingleYearSimulation.
-    %      Each element must contain:
-    %          .DES
-    %          .analyticModel
-    %          .simulationPlan
-    %
-    % OUTPUT
-    %  outputFilePath string
-    %      Full path to written CSV file.
 
     arguments
         simulationResults (:, 1) struct
@@ -76,12 +64,27 @@ function resultsTable = initializeResultsTable(numRows)
         "annualNumberOfStorms"
 
         "totalExternalArrivals"
+        "totalDepartures"
+        "totalCancellations"
         "totalDeicingJobs"
         "totalHOTViolations"
+
         "meanExternalArrivalsPerDay"
         "stdExternalArrivalsPerDay"
         "p95ExternalArrivalsPerDay"
         "maxExternalArrivalsPerDay"
+
+        "meanDeparturesPerDay"
+        "meanCancellationsPerDay"
+        "stdCancellationsPerDay"
+        "p90CancellationsPerDay"
+        "p95CancellationsPerDay"
+        "p99CancellationsPerDay"
+        "maxCancellationsPerDay"
+        "numDaysWithCancellations"
+        "cancellationRatePerExternalAircraft"
+        "meanDailyCancellationRate"
+
         "meanDeicingJobsPerDay"
         "stdDeicingJobsPerDay"
         "p95DeicingJobsPerDay"
@@ -149,6 +152,7 @@ function resultsTable = initializeResultsTable(numRows)
         "totalDelayCost"
         "totalFluidCost"
         "totalActivationCost"
+        "totalCancellationCost"
         "totalOperatingCost"
         "meanDailyOperatingCost"
         "stdDailyOperatingCost"
@@ -161,7 +165,8 @@ function resultsTable = initializeResultsTable(numRows)
 
         "numMissingOperatingCostDays"
         "numMissingVolumeDays"
-        "numIncompleteDESDays"
+        "numNonDepartedDays"
+        "numUnresolvedDESDays"
         "numNonemptyTerminalCalendars"
     ];
 
@@ -177,13 +182,10 @@ function resultsTable = initializeResultsTable(numRows)
 
     variableTypes(ismember(variableNames, stringColumns)) = "string";
 
-    variableNames = variableNames(:)';
-    variableTypes = variableTypes(:)';
-
     resultsTable = table( ...
         'Size', [numRows, numel(variableNames)], ...
-        'VariableTypes', cellstr(variableTypes), ...
-        'VariableNames', cellstr(variableNames));
+        'VariableTypes', cellstr(variableTypes(:)'), ...
+        'VariableNames', cellstr(variableNames(:)'));
 end
 
 function rowTable = buildSimulationResultTableRow(modelResult, simulationPlan, modelType)
@@ -196,25 +198,35 @@ function rowTable = buildSimulationResultTableRow(modelResult, simulationPlan, m
     rowTable.policyK = getNestedNumeric(simulationPlan, ["policy", "k"]);
     rowTable.policyE = getNestedNumeric(simulationPlan, ["policy", "e"]);
 
-    rowTable.arrivalScenarioName = getNestedString( ...
-        simulationPlan, ["arrivalProcess", "scenarioName"]);
-    rowTable.serviceScenarioName = getNestedString( ...
-        simulationPlan, ["serviceProcess", "scenarioName"]);
-    rowTable.taxiTakeoffScenarioName = getNestedString( ...
-        simulationPlan, ["taxiTakeoffProcess", "scenarioName"]);
-    rowTable.costScenarioName = getNestedString( ...
-        simulationPlan, ["costModel", "scenarioName"]);
+    rowTable.arrivalScenarioName = getNestedString(simulationPlan, ["arrivalProcess", "scenarioName"]);
+    rowTable.serviceScenarioName = getNestedString(simulationPlan, ["serviceProcess", "scenarioName"]);
+    rowTable.taxiTakeoffScenarioName = getNestedString(simulationPlan, ["taxiTakeoffProcess", "scenarioName"]);
+    rowTable.costScenarioName = getNestedString(simulationPlan, ["costModel", "scenarioName"]);
 
-    rowTable.annualNumberOfStorms = getNestedNumeric( ...
-        simulationPlan, ["annualNumberOfStorms"]);
+    rowTable.annualNumberOfStorms = getNestedNumeric(simulationPlan, ["annualNumberOfStorms"]);
 
     rowTable.totalExternalArrivals = getNestedNumeric(modelResult, ["volume", "totalExternalArrivals"]);
+    rowTable.totalDepartures = getNestedNumeric(modelResult, ["volume", "totalDepartures"]);
+    rowTable.totalCancellations = getNestedNumeric(modelResult, ["cancellation", "totalCancellations"], ["volume", "totalCancellations"]);
     rowTable.totalDeicingJobs = getNestedNumeric(modelResult, ["volume", "totalDeicingJobs"]);
     rowTable.totalHOTViolations = getNestedNumeric(modelResult, ["volume", "totalHOTViolations"]);
+
     rowTable.meanExternalArrivalsPerDay = getNestedNumeric(modelResult, ["volume", "meanExternalArrivalsPerDay"]);
     rowTable.stdExternalArrivalsPerDay = getNestedNumeric(modelResult, ["volume", "stdExternalArrivalsPerDay"]);
     rowTable.p95ExternalArrivalsPerDay = getNestedNumeric(modelResult, ["volume", "p95ExternalArrivalsPerDay"]);
     rowTable.maxExternalArrivalsPerDay = getNestedNumeric(modelResult, ["volume", "maxExternalArrivalsPerDay"]);
+
+    rowTable.meanDeparturesPerDay = getNestedNumeric(modelResult, ["status", "meanDeparturesPerDay"]);
+    rowTable.meanCancellationsPerDay = getNestedNumeric(modelResult, ["cancellation", "meanCancellationsPerDay"], ["status", "meanCancellationsPerDay"]);
+    rowTable.stdCancellationsPerDay = getNestedNumeric(modelResult, ["cancellation", "stdCancellationsPerDay"]);
+    rowTable.p90CancellationsPerDay = getNestedNumeric(modelResult, ["cancellation", "p90CancellationsPerDay"]);
+    rowTable.p95CancellationsPerDay = getNestedNumeric(modelResult, ["cancellation", "p95CancellationsPerDay"], ["status", "p95CancellationsPerDay"]);
+    rowTable.p99CancellationsPerDay = getNestedNumeric(modelResult, ["cancellation", "p99CancellationsPerDay"]);
+    rowTable.maxCancellationsPerDay = getNestedNumeric(modelResult, ["cancellation", "maxCancellationsPerDay"], ["status", "maxCancellationsPerDay"]);
+    rowTable.numDaysWithCancellations = getNestedNumeric(modelResult, ["cancellation", "numDaysWithCancellations"], ["status", "numDaysWithCancellations"]);
+    rowTable.cancellationRatePerExternalAircraft = getNestedNumeric(modelResult, ["cancellation", "cancellationRatePerExternalAircraft"]);
+    rowTable.meanDailyCancellationRate = getNestedNumeric(modelResult, ["cancellation", "meanDailyCancellationRate"]);
+
     rowTable.meanDeicingJobsPerDay = getNestedNumeric(modelResult, ["volume", "meanDeicingJobsPerDay"]);
     rowTable.stdDeicingJobsPerDay = getNestedNumeric(modelResult, ["volume", "stdDeicingJobsPerDay"]);
     rowTable.p95DeicingJobsPerDay = getNestedNumeric(modelResult, ["volume", "p95DeicingJobsPerDay"]);
@@ -282,6 +294,7 @@ function rowTable = buildSimulationResultTableRow(modelResult, simulationPlan, m
     rowTable.totalDelayCost = getNestedNumeric(modelResult, ["cost", "totalDelayCost"]);
     rowTable.totalFluidCost = getNestedNumeric(modelResult, ["cost", "totalFluidCost"]);
     rowTable.totalActivationCost = getNestedNumeric(modelResult, ["cost", "totalActivationCost"]);
+    rowTable.totalCancellationCost = getNestedNumeric(modelResult, ["cost", "totalCancellationCost"], ["cancellation", "totalCancellationCost"]);
     rowTable.totalOperatingCost = getNestedNumeric(modelResult, ["cost", "totalOperatingCost"]);
     rowTable.meanDailyOperatingCost = getNestedNumeric(modelResult, ["cost", "meanDailyOperatingCost"]);
     rowTable.stdDailyOperatingCost = getNestedNumeric(modelResult, ["cost", "stdDailyOperatingCost"]);
@@ -294,17 +307,22 @@ function rowTable = buildSimulationResultTableRow(modelResult, simulationPlan, m
 
     rowTable.numMissingOperatingCostDays = getNestedNumeric(modelResult, ["diagnostics", "numMissingOperatingCostDays"]);
     rowTable.numMissingVolumeDays = getNestedNumeric(modelResult, ["diagnostics", "numMissingVolumeDays"]);
-    rowTable.numIncompleteDESDays = getNestedNumeric(modelResult, ["diagnostics", "numIncompleteDESDays"]);
+    rowTable.numNonDepartedDays = getNestedNumeric(modelResult, ["diagnostics", "numNonDepartedDays"]);
+    rowTable.numUnresolvedDESDays = getNestedNumeric(modelResult, ["diagnostics", "numUnresolvedDESDays"], ["diagnostics", "numIncompleteDESDays"]);
     rowTable.numNonemptyTerminalCalendars = getNestedNumeric(modelResult, ["diagnostics", "numNonemptyTerminalCalendars"]);
 end
 
-function value = getNestedNumeric(inputStruct, fieldPath)
-    [foundValue, rawValue] = tryGetNestedField(inputStruct, fieldPath);
+function value = getNestedNumeric(inputStruct, varargin)
+    value = NaN;
 
-    if foundValue && isnumeric(rawValue) && isscalar(rawValue)
-        value = rawValue;
-    else
-        value = NaN;
+    for idxPath = 1:numel(varargin)
+        fieldPath = varargin{idxPath};
+        [foundValue, rawValue] = tryGetNestedField(inputStruct, fieldPath);
+
+        if foundValue && isnumeric(rawValue) && isscalar(rawValue)
+            value = rawValue;
+            return;
+        end
     end
 end
 

@@ -9,6 +9,7 @@ function templateCostModelStruct = buildTemplateCostModelStruct()
     %      .delayCosts (doubles)                   - escalating piecewise linear delay cost terms [CD1, CD2, CD3]
     %      .baseFluidCost (double)                 - base fluid cost
     %      .baseActivationCost (double)            - base resource activation cost
+    %      .cancellationCost (double)            - base resource activation cost
  
     templateCostModelStruct = struct();
     templateCostModelStruct.scenarioName = [];
@@ -17,4 +18,5 @@ function templateCostModelStruct = buildTemplateCostModelStruct()
     templateCostModelStruct.delayCosts = [];
     templateCostModelStruct.baseFluidCost = [];
     templateCostModelStruct.baseActivationCost = [];
+    templateCostModelStruct.cancellationCost = [];
 end
