@@ -40,6 +40,7 @@ function aircraft = constructAircraft(arrivalEvent, simContext)
     aircraft.totalDeicingServiceTime = 0;
     aircraft.totalTaxiTakeoffQueueingDelay = 0;
     aircraft.totalTaxiTakeoffServiceTime = 0;
+    aircraft.numHOTViolations = 0;
 
     aircraft.STD = arrivalEvent.time + ...
         getAllowableBaselineGroundSojournTime() * aircraftTypeInfo.groundSojournTimeToleranceMultipliers(idxType);

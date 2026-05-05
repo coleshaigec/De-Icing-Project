@@ -26,6 +26,7 @@ function templateAircraftStruct = buildTemplateAircraftStruct()
     templateAircraftStruct.currentDeicingServiceCompletionTime = NaN;
     templateAircraftStruct.currentTaxiTakeoffStartTime = NaN;
     templateAircraftStruct.hotLimit = NaN;
+    templateAircraftStruct.numHOTViolations = NaN;
     templateAircraftStruct.numDeicingCyclesCompleted = NaN;
     templateAircraftStruct.totalDeicingQueueingDelay = NaN;
     templateAircraftStruct.totalDeicingServiceTime = NaN;

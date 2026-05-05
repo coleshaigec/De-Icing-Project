@@ -46,6 +46,7 @@ function singleDaySimulationResult = runSingleDaySimulation(yearSimulationPlan, 
     %          .delayCosts (double array)              - escalating piecewise linear delay cost terms [CD1, CD2, CD3]
     %          .baseFluidCost (double)                 - base fluid cost
     %          .baseActivationCost (double)            - base resource activation cost 
+    %          .cancellationCost (double)              - cost of a cancelled flight
     %
     %  stormIndex (integer)  - used to extract day's storm conditions from year-level plan
     %
@@ -91,8 +92,9 @@ function singleDaySimulationResult = runSingleDaySimulation(yearSimulationPlan, 
     % ====================
     % Core DES event loop
     % ====================
+    numEventsProcessed = 0;
     while ~isEventCalendarEmpty(simContext.eventCalendar)
-    
+        
         simContext.eventCalendar = sanitizeEventCalendar(simContext.eventCalendar);
     
         if isEventCalendarEmpty(simContext.eventCalendar)
@@ -104,6 +106,15 @@ function singleDaySimulationResult = runSingleDaySimulation(yearSimulationPlan, 
      
         simContext.clock = currentEvent.time;
         simContext = handleEvent(simContext, currentEvent);
+        if mod(numEventsProcessed, 100000) == 0
+            fprintf("Events=%d, t=%.3f, type=%s, calendar=%d, deiceQ=%d, taxiQ=%d\n", ...
+            numEventsProcessed, ...
+            simContext.clock, ...
+            string(currentEvent.type), ...
+            numel(simContext.eventCalendar), ...
+            numel(simContext.state.deicingQueue), ...
+            numel(simContext.state.taxiTakeoffQueue));
+        end
     end
 
     delayCostThresholds = getDelayCostThresholds();

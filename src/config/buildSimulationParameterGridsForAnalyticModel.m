@@ -649,6 +649,7 @@ function simulationParameterGrids = buildSimulationParameterGridsForAnalyticMode
     costModels(1).delayCosts = [5, 10, 20];
     costModels(1).baseFluidCost = 1.00;
     costModels(1).baseActivationCost = 1.00;
+    costModels(1).cancellationCost = 500;
 
     costModels(2) = templateCostModelStruct;
     costModels(2).scenarioName = "highFluidCost";
@@ -657,6 +658,7 @@ function simulationParameterGrids = buildSimulationParameterGridsForAnalyticMode
     costModels(2).delayCosts = [5, 10, 20];
     costModels(2).baseFluidCost = 3.00;
     costModels(2).baseActivationCost = 1.00;
+    costModels(2).cancellationCost = 750;
 
     costModels(3) = templateCostModelStruct;
     costModels(3).scenarioName = "delaySensitiveCost";
@@ -665,6 +667,7 @@ function simulationParameterGrids = buildSimulationParameterGridsForAnalyticMode
     costModels(3).delayCosts = [10, 25, 60];
     costModels(3).baseFluidCost = 1.00;
     costModels(3).baseActivationCost = 1.00;
+    costModels(3).cancellationCost = 1000;
 
     % =======================
     % Populate output struct
