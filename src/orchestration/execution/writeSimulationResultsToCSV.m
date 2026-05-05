@@ -17,8 +17,8 @@ function outputFilePath = writeSimulationResultsToCSV(simulationResults)
         mkdir(outputDirectory);
     end
 
-    timestamp = string(datetime("now", "Format", "yyyyMMdd_HHmmss"));
-    outputFileName = "annual_simulation_results_" + timestamp + ".csv";
+    % timestamp = string(datetime("now", "Format", "yyyyMMdd_HHmmss"));
+    outputFileName = getOutputCSVFileName() + ".csv";
     outputFilePath = fullfile(outputDirectory, outputFileName);
 
     numRows = 2 * numel(simulationResults);

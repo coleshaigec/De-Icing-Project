@@ -1,0 +1,759 @@
+% % % function simulationParameterGrids = buildSimulationParameterGridsForAnalyticModel()
+% % %     % BUILDSIMULATIONPARAMETERGRIDSFORANALYTICMODEL Builds controlled overnight DES grid.
+% % %     %
+% % %     % PURPOSE
+% % %     %  Controlled production grid for overnight runs after HOT-cancellation
+% % %     %  stabilization.
+% % %     %
+% % %     % DESIGN PRINCIPLES
+% % %     %  1. Avoid k = 1 collapse-dominated regimes in the main production grid.
+% % %     %  2. Preserve enough stress to observe HOT violations and cancellations.
+% % %     %  3. Sweep k and e jointly to expose server-count/service-rate interaction.
+% % %     %  4. Sweep arrival-bank temporal concentration via sigmaLambda.
+% % %     %  5. Sweep taxi/takeoff process behavior via baseline time, variability,
+% % %     %     and congestion sensitivity.
+% % %     %  6. Sweep storm frequency through annualNumberOfStormsValues.
+% % %     %  7. Sweep cost drivers with emphasis on fluid cost and delay sensitivity.
+% % %     %
+% % %     % EXPECTED GRID SIZE
+% % %     %  numel(kValues) * numel(eValues) * arrivals * taxi * stormCounts * costs
+% % %     %  = 4 * 3 * 5 * 3 * 3 * 3 = 1620 annual simulation plans.
+% % % 
+% % %     % ==================================================
+% % %     % Policies
+% % %     % ==================================================
+% % %     policies = struct();
+% % % 
+% % %     % k = 4 is the controlled stress lower bound.
+% % %     % k = 5,6 probe marginal capacity increments.
+% % %     % k = 8 gives an ample-capacity comparison.
+% % %     %
+% % %     % Excludes k = 1 because debug testing showed that low-capacity regimes
+% % %     % can become cancellation-collapse cases rather than useful operating
+% % %     % policies.
+% % %     policies.kValues = [4, 5, 6, 8];
+% % % 
+% % %     % e indexes the three service-process alternatives below.
+% % %     % Keep all three to study k/e interaction.
+% % %     policies.eValues = 1:3;
+% % % 
+% % %     % ==================================================
+% % %     % Arrival process scenarios
+% % %     % ==================================================
+% % %     numArrivalProcessScenarios = 5;
+% % %     templateArrivalProcessStruct = buildTemplateArrivalProcessStruct();
+% % %     arrivalProcesses = repmat(templateArrivalProcessStruct, numArrivalProcessScenarios, 1);
+% % % 
+% % %     % Steady moderate flow:
+% % %     % Low temporal concentration. Useful baseline.
+% % %     arrivalProcesses(1) = templateArrivalProcessStruct;
+% % %     arrivalProcesses(1).scenarioName = "steadyModerate";
+% % %     arrivalProcesses(1).lambdaBase = 0.18;
+% % %     arrivalProcesses(1).lambdaPeak = 0.00;
+% % %     arrivalProcesses(1).t0 = 180;
+% % %     arrivalProcesses(1).sigmaLambda = 1.00;
+% % %     arrivalProcesses(1).Ca = 1.00;
+% % % 
+% % %     % Narrow departure bank:
+% % %     % Same order of total demand, but temporally concentrated.
+% % %     arrivalProcesses(2) = templateArrivalProcessStruct;
+% % %     arrivalProcesses(2).scenarioName = "narrowDepartureBank";
+% % %     arrivalProcesses(2).lambdaBase = 0.14;
+% % %     arrivalProcesses(2).lambdaPeak = 0.32;
+% % %     arrivalProcesses(2).t0 = 180;
+% % %     arrivalProcesses(2).sigmaLambda = 0.35;
+% % %     arrivalProcesses(2).Ca = 1.00;
+% % % 
+% % %     % Medium departure bank:
+% % %     % Intermediate concentration.
+% % %     arrivalProcesses(3) = templateArrivalProcessStruct;
+% % %     arrivalProcesses(3).scenarioName = "mediumDepartureBank";
+% % %     arrivalProcesses(3).lambdaBase = 0.16;
+% % %     arrivalProcesses(3).lambdaPeak = 0.28;
+% % %     arrivalProcesses(3).t0 = 180;
+% % %     arrivalProcesses(3).sigmaLambda = 1.50;
+% % %     arrivalProcesses(3).Ca = 1.00;
+% % % 
+% % %     % Broad departure bank:
+% % %     % Demand spread over time. Tests whether temporal smoothing reduces
+% % %     % required capacity even with comparable total traffic.
+% % %     arrivalProcesses(4) = templateArrivalProcessStruct;
+% % %     arrivalProcesses(4).scenarioName = "broadDepartureBank";
+% % %     arrivalProcesses(4).lambdaBase = 0.22;
+% % %     arrivalProcesses(4).lambdaPeak = 0.20;
+% % %     arrivalProcesses(4).t0 = 180;
+% % %     arrivalProcesses(4).sigmaLambda = 4.00;
+% % %     arrivalProcesses(4).Ca = 1.00;
+% % % 
+% % %     % Controlled stress case:
+% % %     % Peak exogenous demand under weakest included policy:
+% % %     % lambdaMax = 0.20 + 0.44 = 0.64 aircraft/min.
+% % %     % weakest nominal deicing capacity = k * muDI = 4 * 0.18 = 0.72 jobs/min.
+% % %     % peak exogenous rho ≈ 0.889 before HOT feedback.
+% % %     %
+% % %     % This should reveal nonlinear HOT/cancellation behavior without starting
+% % %     % from a knowingly impossible k = 1 policy.
+% % %     arrivalProcesses(5) = templateArrivalProcessStruct;
+% % %     arrivalProcesses(5).scenarioName = "stressNarrowDepartureBank";
+% % %     arrivalProcesses(5).lambdaBase = 0.20;
+% % %     arrivalProcesses(5).lambdaPeak = 0.44;
+% % %     arrivalProcesses(5).t0 = 180;
+% % %     arrivalProcesses(5).sigmaLambda = 0.35;
+% % %     arrivalProcesses(5).Ca = 1.00;
+% % % 
+% % %     % ==================================================
+% % %     % Service process scenarios
+% % %     % ==================================================
+% % %     numServiceProcessScenarios = 3;
+% % %     templateServiceProcessStruct = buildTemplateServiceProcessStruct();
+% % %     serviceProcesses = repmat(templateServiceProcessStruct, numServiceProcessScenarios, 1);
+% % % 
+% % %     % Baseline:
+% % %     % Slowest service, highest variability.
+% % %     serviceProcesses(1) = templateServiceProcessStruct;
+% % %     serviceProcesses(1).scenarioName = "baseline";
+% % %     serviceProcesses(1).muDI = 0.18;
+% % %     serviceProcesses(1).eta = 0.10;
+% % %     serviceProcesses(1).Cs = 1.20;
+% % %     serviceProcesses(1).activationCostMultiple = 1.00;
+% % %     serviceProcesses(1).serviceProcessCAPEXCase = "low";
+% % % 
+% % %     % Upgraded:
+% % %     % Moderate service improvement and lower variability.
+% % %     serviceProcesses(2) = templateServiceProcessStruct;
+% % %     serviceProcesses(2).scenarioName = "upgraded";
+% % %     serviceProcesses(2).muDI = 0.24;
+% % %     serviceProcesses(2).eta = 0.08;
+% % %     serviceProcesses(2).Cs = 1.00;
+% % %     serviceProcesses(2).activationCostMultiple = 1.50;
+% % %     serviceProcesses(2).serviceProcessCAPEXCase = "medium";
+% % % 
+% % %     % High-end:
+% % %     % Fastest, least variable service. Higher activation/CAPEX burden.
+% % %     serviceProcesses(3) = templateServiceProcessStruct;
+% % %     serviceProcesses(3).scenarioName = "highEnd";
+% % %     serviceProcesses(3).muDI = 0.32;
+% % %     serviceProcesses(3).eta = 0.06;
+% % %     serviceProcesses(3).Cs = 0.80;
+% % %     serviceProcesses(3).activationCostMultiple = 2.25;
+% % %     serviceProcesses(3).serviceProcessCAPEXCase = "high";
+% % % 
+% % %     % ==================================================
+% % %     % Taxi / takeoff process scenarios
+% % %     % ==================================================
+% % %     numTaxiTakeoffProcessScenarios = 3;
+% % %     templateTaxiTakeoffProcessStruct = buildTemplateTaxiTakeoffProcessStruct();
+% % %     taxiTakeoffProcesses = repmat(templateTaxiTakeoffProcessStruct, numTaxiTakeoffProcessScenarios, 1);
+% % % 
+% % %     % Smooth taxi/takeoff:
+% % %     % Low congestion sensitivity and lower variability.
+% % %     taxiTakeoffProcesses(1) = templateTaxiTakeoffProcessStruct;
+% % %     taxiTakeoffProcesses(1).scenarioName = "smoothTaxi";
+% % %     taxiTakeoffProcesses(1).beta = 0.20;
+% % %     taxiTakeoffProcesses(1).p = 1.00;
+% % %     taxiTakeoffProcesses(1).T0 = 8.00;
+% % %     taxiTakeoffProcesses(1).CT = 0.75;
+% % % 
+% % %     % Baseline taxi/takeoff:
+% % %     % Moderate baseline time, moderate congestion sensitivity.
+% % %     taxiTakeoffProcesses(2) = templateTaxiTakeoffProcessStruct;
+% % %     taxiTakeoffProcesses(2).scenarioName = "baselineTaxi";
+% % %     taxiTakeoffProcesses(2).beta = 0.45;
+% % %     taxiTakeoffProcesses(2).p = 1.25;
+% % %     taxiTakeoffProcesses(2).T0 = 10.00;
+% % %     taxiTakeoffProcesses(2).CT = 1.00;
+% % % 
+% % %     % Volatile taxi/takeoff:
+% % %     % Higher baseline time, higher variability, stronger congestion feedback.
+% % %     % This scenario should expose HOT/cancellation sensitivity to surface
+% % %     % congestion after deicing.
+% % %     taxiTakeoffProcesses(3) = templateTaxiTakeoffProcessStruct;
+% % %     taxiTakeoffProcesses(3).scenarioName = "volatileTaxi";
+% % %     taxiTakeoffProcesses(3).beta = 0.80;
+% % %     taxiTakeoffProcesses(3).p = 1.50;
+% % %     taxiTakeoffProcesses(3).T0 = 12.00;
+% % %     taxiTakeoffProcesses(3).CT = 1.35;
+% % % 
+% % %     % ==================================================
+% % %     % Storm-count and storm-severity parameters
+% % %     % ==================================================
+% % %     % Annual storm frequency sweep.
+% % %     annualNumberOfStormsValues = [8, 16, 28];
+% % % 
+% % %     % Storm severity remains stochastic within each annual run.
+% % %     % Gamma mean = alpha * theta = 0.60.
+% % %     % This gives meaningful severity variation without intentionally forcing
+% % %     % every run into collapse.
+% % %     stormDistributionParameters = struct( ...
+% % %         'alpha', 2, ...
+% % %         'theta', 0.30 ...
+% % %     );
+% % % 
+% % %     % =============================================
+% % %     % Cost model scenarios
+% % %     % =============================================
+% % %     numCostScenarios = 3;
+% % %     templateCostModelStruct = buildTemplateCostModelStruct();
+% % %     costModels = repmat(templateCostModelStruct, numCostScenarios, 1);
+% % % 
+% % %     % Baseline cost:
+% % %     % Balanced operating-cost case.
+% % %     costModels(1) = templateCostModelStruct;
+% % %     costModels(1).scenarioName = "baselineCost";
+% % %     costModels(1).singlePadCAPEX = 20;
+% % %     costModels(1).serviceProcessCAPEXes = [5, 10, 20];
+% % %     costModels(1).delayCosts = [5, 10, 20];
+% % %     costModels(1).baseFluidCost = 1.00;
+% % %     costModels(1).baseActivationCost = 1.00;
+% % %     costModels(1).cancellationCost = 25000;
+% % % 
+% % %     % High fluid cost:
+% % %     % Isolates how fluid economics shift the optimal policy.
+% % %     costModels(2) = templateCostModelStruct;
+% % %     costModels(2).scenarioName = "highFluidCost";
+% % %     costModels(2).singlePadCAPEX = 20;
+% % %     costModels(2).serviceProcessCAPEXes = [5, 10, 20];
+% % %     costModels(2).delayCosts = [5, 10, 20];
+% % %     costModels(2).baseFluidCost = 3.00;
+% % %     costModels(2).baseActivationCost = 1.00;
+% % %     costModels(2).cancellationCost = 25000;
+% % % 
+% % %     % Delay-sensitive / network-sensitive cost:
+% % %     % Makes severe delay economically important while keeping cancellation
+% % %     % penalty fixed, so cancellation is not silently cheap.
+% % %     costModels(3) = templateCostModelStruct;
+% % %     costModels(3).scenarioName = "delaySensitiveCost";
+% % %     costModels(3).singlePadCAPEX = 20;
+% % %     costModels(3).serviceProcessCAPEXes = [5, 10, 20];
+% % %     costModels(3).delayCosts = [10, 25, 60];
+% % %     costModels(3).baseFluidCost = 1.00;
+% % %     costModels(3).baseActivationCost = 1.00;
+% % %     costModels(3).cancellationCost = 25000;
+% % % 
+% % %     % =======================
+% % %     % Populate output struct
+% % %     % =======================
+% % %     simulationParameterGrids = struct();
+% % %     simulationParameterGrids.policies = policies;
+% % %     simulationParameterGrids.arrivalProcesses = arrivalProcesses;
+% % %     simulationParameterGrids.serviceProcesses = serviceProcesses;
+% % %     simulationParameterGrids.taxiTakeoffProcesses = taxiTakeoffProcesses;
+% % %     simulationParameterGrids.annualNumberOfStormsValues = annualNumberOfStormsValues;
+% % %     simulationParameterGrids.stormDistributionParameters = stormDistributionParameters;
+% % %     simulationParameterGrids.costModels = costModels;
+% % % end
+% % % 
+% function simulationParameterGrids = buildSimulationParameterGridsForAnalyticModel()
+%     % BUILDSIMULATIONPARAMETERGRIDSFORANALYTICMODEL
+%     %
+%     % EXPERIMENT 1: k/e TRADEOFF PROBE
+%     %
+%     % PURPOSE
+%     %  This grid isolates the tradeoff between installed deicing capacity
+%     %  (server count k) and service-process quality (integer index e).
+%     %
+%     %  Here e is NOT continuous. It is an integer-valued selector over the
+%     %  three hard-coded service processes below:
+%     %
+%     %      e = 1 -> baseline service
+%     %      e = 2 -> upgraded service
+%     %      e = 3 -> high-end service
+%     %
+%     %  Therefore, this experiment asks:
+%     %
+%     %      Does the optimizer prefer more servers, better/faster service,
+%     %      or some mixture of both under moderate and stressful demand?
+%     %
+%     % DESIGN
+%     %  - Expand k moderately: [4, 5, 6, 7, 8, 10]
+%     %  - Preserve e = 1:3 as service-process indices.
+%     %  - Use two arrival regimes: medium and stress.
+%     %  - Hold taxi/takeoff fixed at baselineTaxi.
+%     %  - Use two storm-count levels: 16 and 28.
+%     %  - Use baseline and delay-sensitive costs.
+%     %
+%     % EXPECTED GRID SIZE
+%     %  6 * 3 * 2 * 1 * 2 * 2 = 144 annual simulation plans.
+% 
+%     % ==================================================
+%     % Policies
+%     % ==================================================
+%     policies = struct();
+%     policies.kValues = [4, 5, 6, 7, 8, 10];
+%     policies.eValues = 1:3;
+% 
+%     % ==================================================
+%     % Arrival process scenarios
+%     % ==================================================
+%     numArrivalProcessScenarios = 2;
+%     templateArrivalProcessStruct = buildTemplateArrivalProcessStruct();
+%     arrivalProcesses = repmat(templateArrivalProcessStruct, numArrivalProcessScenarios, 1);
+% 
+%     arrivalProcesses(1) = templateArrivalProcessStruct;
+%     arrivalProcesses(1).scenarioName = "mediumDepartureBank";
+%     arrivalProcesses(1).lambdaBase = 0.16;
+%     arrivalProcesses(1).lambdaPeak = 0.28;
+%     arrivalProcesses(1).t0 = 180;
+%     arrivalProcesses(1).sigmaLambda = 1.50;
+%     arrivalProcesses(1).Ca = 1.00;
+% 
+%     arrivalProcesses(2) = templateArrivalProcessStruct;
+%     arrivalProcesses(2).scenarioName = "stressNarrowDepartureBank";
+%     arrivalProcesses(2).lambdaBase = 0.20;
+%     arrivalProcesses(2).lambdaPeak = 0.44;
+%     arrivalProcesses(2).t0 = 180;
+%     arrivalProcesses(2).sigmaLambda = 0.35;
+%     arrivalProcesses(2).Ca = 1.00;
+% 
+%     % ==================================================
+%     % Service process scenarios
+%     % ==================================================
+%     numServiceProcessScenarios = 3;
+%     templateServiceProcessStruct = buildTemplateServiceProcessStruct();
+%     serviceProcesses = repmat(templateServiceProcessStruct, numServiceProcessScenarios, 1);
+% 
+%     serviceProcesses(1) = templateServiceProcessStruct;
+%     serviceProcesses(1).scenarioName = "baseline";
+%     serviceProcesses(1).muDI = 0.18;
+%     serviceProcesses(1).eta = 0.10;
+%     serviceProcesses(1).Cs = 1.20;
+%     serviceProcesses(1).activationCostMultiple = 1.00;
+%     serviceProcesses(1).serviceProcessCAPEXCase = "low";
+% 
+%     serviceProcesses(2) = templateServiceProcessStruct;
+%     serviceProcesses(2).scenarioName = "upgraded";
+%     serviceProcesses(2).muDI = 0.24;
+%     serviceProcesses(2).eta = 0.08;
+%     serviceProcesses(2).Cs = 1.00;
+%     serviceProcesses(2).activationCostMultiple = 1.50;
+%     serviceProcesses(2).serviceProcessCAPEXCase = "medium";
+% 
+%     serviceProcesses(3) = templateServiceProcessStruct;
+%     serviceProcesses(3).scenarioName = "highEnd";
+%     serviceProcesses(3).muDI = 0.32;
+%     serviceProcesses(3).eta = 0.06;
+%     serviceProcesses(3).Cs = 0.80;
+%     serviceProcesses(3).activationCostMultiple = 2.25;
+%     serviceProcesses(3).serviceProcessCAPEXCase = "high";
+% 
+%     % ==================================================
+%     % Taxi / takeoff process scenarios
+%     % ==================================================
+%     numTaxiTakeoffProcessScenarios = 1;
+%     templateTaxiTakeoffProcessStruct = buildTemplateTaxiTakeoffProcessStruct();
+%     taxiTakeoffProcesses = repmat(templateTaxiTakeoffProcessStruct, numTaxiTakeoffProcessScenarios, 1);
+% 
+%     taxiTakeoffProcesses(1) = templateTaxiTakeoffProcessStruct;
+%     taxiTakeoffProcesses(1).scenarioName = "baselineTaxi";
+%     taxiTakeoffProcesses(1).beta = 0.45;
+%     taxiTakeoffProcesses(1).p = 1.25;
+%     taxiTakeoffProcesses(1).T0 = 10.00;
+%     taxiTakeoffProcesses(1).CT = 1.00;
+% 
+%     % ==================================================
+%     % Storm-count and severity parameters
+%     % ==================================================
+%     annualNumberOfStormsValues = [16, 28];
+% 
+%     stormDistributionParameters = struct( ...
+%         'alpha', 2, ...
+%         'theta', 0.30 ...
+%     );
+% 
+%     % ==================================================
+%     % Cost model scenarios
+%     % ==================================================
+%     numCostScenarios = 2;
+%     templateCostModelStruct = buildTemplateCostModelStruct();
+%     costModels = repmat(templateCostModelStruct, numCostScenarios, 1);
+% 
+%     costModels(1) = templateCostModelStruct;
+%     costModels(1).scenarioName = "baselineCost";
+%     costModels(1).singlePadCAPEX = 20;
+%     costModels(1).serviceProcessCAPEXes = [5, 10, 20];
+%     costModels(1).delayCosts = [5, 10, 20];
+%     costModels(1).baseFluidCost = 1.00;
+%     costModels(1).baseActivationCost = 1.00;
+%     costModels(1).cancellationCost = 25000;
+% 
+%     costModels(2) = templateCostModelStruct;
+%     costModels(2).scenarioName = "delaySensitiveCost";
+%     costModels(2).singlePadCAPEX = 20;
+%     costModels(2).serviceProcessCAPEXes = [5, 10, 20];
+%     costModels(2).delayCosts = [10, 25, 60];
+%     costModels(2).baseFluidCost = 1.00;
+%     costModels(2).baseActivationCost = 1.00;
+%     costModels(2).cancellationCost = 25000;
+% 
+%     simulationParameterGrids = struct();
+%     simulationParameterGrids.policies = policies;
+%     simulationParameterGrids.arrivalProcesses = arrivalProcesses;
+%     simulationParameterGrids.serviceProcesses = serviceProcesses;
+%     simulationParameterGrids.taxiTakeoffProcesses = taxiTakeoffProcesses;
+%     simulationParameterGrids.annualNumberOfStormsValues = annualNumberOfStormsValues;
+%     simulationParameterGrids.stormDistributionParameters = stormDistributionParameters;
+%     simulationParameterGrids.costModels = costModels;
+% end
+% 
+% function simulationParameterGrids = buildSimulationParameterGridsForAnalyticModel()
+%     % BUILDSIMULATIONPARAMETERGRIDSFORANALYTICMODEL
+%     %
+%     % EXPERIMENT 2: WEATHER SENSITIVITY / SPORADIC-SPIKE ECONOMICS
+%     %
+%     % PURPOSE
+%     %  This grid probes how optimal deicing capacity changes when the airport
+%     %  faces different annual winter operating environments.
+%     %
+%     %  This is the geography-specific research question:
+%     %
+%     %      Should capacity be sized for frequent storms, rare storms,
+%     %      severe storms, or sporadic tail-risk events?
+%     %
+%     % DESIGN
+%     %  - Preserve k/e policy structure from production grid.
+%     %  - Use two arrival regimes:
+%     %       mediumDepartureBank
+%     %       stressNarrowDepartureBank
+%     %  - Hold taxi/takeoff at baselineTaxi to isolate weather sensitivity.
+%     %  - Sweep storm frequency broadly:
+%     %       4, 8, 16, 28, 40, 60 annual storms
+%     %  - Use one severe storm distribution to probe tail-heavy conditions.
+%     %
+%     % NOTE
+%     %  If time permits, rerun this exact same grid three times with:
+%     %
+%     %      theta = 0.20  mild storm severity
+%     %      theta = 0.30  baseline storm severity
+%     %      theta = 0.50  severe storm severity
+%     %
+%     %  The version below uses theta = 0.50 because severe sporadic weather is
+%     %  the most decision-relevant tail case.
+%     %
+%     % EXPECTED GRID SIZE
+%     %  4 * 3 * 2 * 1 * 6 * 1 = 144 annual simulation plans.
+% 
+%     % ==================================================
+%     % Policies
+%     % ==================================================
+%     policies = struct();
+%     policies.kValues = [4, 5, 6, 8];
+%     policies.eValues = 1:3;
+% 
+%     % ==================================================
+%     % Arrival process scenarios
+%     % ==================================================
+%     numArrivalProcessScenarios = 2;
+%     templateArrivalProcessStruct = buildTemplateArrivalProcessStruct();
+%     arrivalProcesses = repmat(templateArrivalProcessStruct, numArrivalProcessScenarios, 1);
+% 
+%     arrivalProcesses(1) = templateArrivalProcessStruct;
+%     arrivalProcesses(1).scenarioName = "mediumDepartureBank";
+%     arrivalProcesses(1).lambdaBase = 0.16;
+%     arrivalProcesses(1).lambdaPeak = 0.28;
+%     arrivalProcesses(1).t0 = 180;
+%     arrivalProcesses(1).sigmaLambda = 1.50;
+%     arrivalProcesses(1).Ca = 1.00;
+% 
+%     arrivalProcesses(2) = templateArrivalProcessStruct;
+%     arrivalProcesses(2).scenarioName = "stressNarrowDepartureBank";
+%     arrivalProcesses(2).lambdaBase = 0.20;
+%     arrivalProcesses(2).lambdaPeak = 0.44;
+%     arrivalProcesses(2).t0 = 180;
+%     arrivalProcesses(2).sigmaLambda = 0.35;
+%     arrivalProcesses(2).Ca = 1.00;
+% 
+%     % ==================================================
+%     % Service process scenarios
+%     % ==================================================
+%     numServiceProcessScenarios = 3;
+%     templateServiceProcessStruct = buildTemplateServiceProcessStruct();
+%     serviceProcesses = repmat(templateServiceProcessStruct, numServiceProcessScenarios, 1);
+% 
+%     serviceProcesses(1) = templateServiceProcessStruct;
+%     serviceProcesses(1).scenarioName = "baseline";
+%     serviceProcesses(1).muDI = 0.18;
+%     serviceProcesses(1).eta = 0.10;
+%     serviceProcesses(1).Cs = 1.20;
+%     serviceProcesses(1).activationCostMultiple = 1.00;
+%     serviceProcesses(1).serviceProcessCAPEXCase = "low";
+% 
+%     serviceProcesses(2) = templateServiceProcessStruct;
+%     serviceProcesses(2).scenarioName = "upgraded";
+%     serviceProcesses(2).muDI = 0.24;
+%     serviceProcesses(2).eta = 0.08;
+%     serviceProcesses(2).Cs = 1.00;
+%     serviceProcesses(2).activationCostMultiple = 1.50;
+%     serviceProcesses(2).serviceProcessCAPEXCase = "medium";
+% 
+%     serviceProcesses(3) = templateServiceProcessStruct;
+%     serviceProcesses(3).scenarioName = "highEnd";
+%     serviceProcesses(3).muDI = 0.32;
+%     serviceProcesses(3).eta = 0.06;
+%     serviceProcesses(3).Cs = 0.80;
+%     serviceProcesses(3).activationCostMultiple = 2.25;
+%     serviceProcesses(3).serviceProcessCAPEXCase = "high";
+% 
+%     % ==================================================
+%     % Taxi / takeoff process scenarios
+%     % ==================================================
+%     numTaxiTakeoffProcessScenarios = 1;
+%     templateTaxiTakeoffProcessStruct = buildTemplateTaxiTakeoffProcessStruct();
+%     taxiTakeoffProcesses = repmat(templateTaxiTakeoffProcessStruct, numTaxiTakeoffProcessScenarios, 1);
+% 
+%     taxiTakeoffProcesses(1) = templateTaxiTakeoffProcessStruct;
+%     taxiTakeoffProcesses(1).scenarioName = "baselineTaxi";
+%     taxiTakeoffProcesses(1).beta = 0.45;
+%     taxiTakeoffProcesses(1).p = 1.25;
+%     taxiTakeoffProcesses(1).T0 = 10.00;
+%     taxiTakeoffProcesses(1).CT = 1.00;
+% 
+%     % ==================================================
+%     % Storm-count and severity parameters
+%     % ==================================================
+%     annualNumberOfStormsValues = [4, 8, 16, 28, 40, 60];
+% 
+%     % Severe-weather version.
+%     % Gamma mean = alpha * theta = 1.00.
+%     % This intentionally probes heavier storm burden than the baseline grid.
+%     stormDistributionParameters = struct( ...
+%         'alpha', 2, ...
+%         'theta', 0.50 ...
+%     );
+% 
+%     % ==================================================
+%     % Cost model scenarios
+%     % ==================================================
+%     numCostScenarios = 1;
+%     templateCostModelStruct = buildTemplateCostModelStruct();
+%     costModels = repmat(templateCostModelStruct, numCostScenarios, 1);
+% 
+%     costModels(1) = templateCostModelStruct;
+%     costModels(1).scenarioName = "baselineCost";
+%     costModels(1).singlePadCAPEX = 20;
+%     costModels(1).serviceProcessCAPEXes = [5, 10, 20];
+%     costModels(1).delayCosts = [5, 10, 20];
+%     costModels(1).baseFluidCost = 1.00;
+%     costModels(1).baseActivationCost = 1.00;
+%     costModels(1).cancellationCost = 25000;
+% 
+%     simulationParameterGrids = struct();
+%     simulationParameterGrids.policies = policies;
+%     simulationParameterGrids.arrivalProcesses = arrivalProcesses;
+%     simulationParameterGrids.serviceProcesses = serviceProcesses;
+%     simulationParameterGrids.taxiTakeoffProcesses = taxiTakeoffProcesses;
+%     simulationParameterGrids.annualNumberOfStormsValues = annualNumberOfStormsValues;
+%     simulationParameterGrids.stormDistributionParameters = stormDistributionParameters;
+%     simulationParameterGrids.costModels = costModels;
+% end
+% function simulationParameterGrids = buildSimulationParameterGridsForAnalyticModel()
+%     % BUILDSIMULATIONPARAMETERGRIDSFORANALYTICMODEL
+%     %
+%     % EXPERIMENT 3: EXECUTIVE COST-DRIVER SENSITIVITY
+%     %
+%     % PURPOSE
+%     %  This grid asks which business assumptions actually move the optimal
+%     %  policy:
+%     %
+%     %      - higher delay/network externality costs
+%     %      - fortress-hub disruption sensitivity
+%     %      - higher cancellation penalties
+%     %      - tighter labor market / activation cost
+%     %      - higher fluid prices
+%     %
+%     %  This is the most executive-facing experiment. It asks:
+%     %
+%     %      If cost assumptions change, does optimal capacity change,
+%     %      or is the physical congestion structure dominant?
+%     %
+%     % DESIGN
+%     %  - Use existing k/e policy grid.
+%     %  - Use medium and stress arrival regimes.
+%     %  - Include baselineTaxi and volatileTaxi.
+%     %  - Use two storm-count levels.
+%     %  - Sweep cost models heavily while holding physical assumptions limited.
+%     %
+%     % EXPECTED GRID SIZE
+%     %  4 * 3 * 2 * 2 * 2 * 7 = 672 annual simulation plans.
+% 
+%     % ==================================================
+%     % Policies
+%     % ==================================================
+%     policies = struct();
+%     policies.kValues = [4, 5, 6, 8];
+%     policies.eValues = 1:3;
+% 
+%     % ==================================================
+%     % Arrival process scenarios
+%     % ==================================================
+%     numArrivalProcessScenarios = 2;
+%     templateArrivalProcessStruct = buildTemplateArrivalProcessStruct();
+%     arrivalProcesses = repmat(templateArrivalProcessStruct, numArrivalProcessScenarios, 1);
+% 
+%     arrivalProcesses(1) = templateArrivalProcessStruct;
+%     arrivalProcesses(1).scenarioName = "mediumDepartureBank";
+%     arrivalProcesses(1).lambdaBase = 0.16;
+%     arrivalProcesses(1).lambdaPeak = 0.28;
+%     arrivalProcesses(1).t0 = 180;
+%     arrivalProcesses(1).sigmaLambda = 1.50;
+%     arrivalProcesses(1).Ca = 1.00;
+% 
+%     arrivalProcesses(2) = templateArrivalProcessStruct;
+%     arrivalProcesses(2).scenarioName = "stressNarrowDepartureBank";
+%     arrivalProcesses(2).lambdaBase = 0.20;
+%     arrivalProcesses(2).lambdaPeak = 0.44;
+%     arrivalProcesses(2).t0 = 180;
+%     arrivalProcesses(2).sigmaLambda = 0.35;
+%     arrivalProcesses(2).Ca = 1.00;
+% 
+%     % ==================================================
+%     % Service process scenarios
+%     % ==================================================
+%     numServiceProcessScenarios = 3;
+%     templateServiceProcessStruct = buildTemplateServiceProcessStruct();
+%     serviceProcesses = repmat(templateServiceProcessStruct, numServiceProcessScenarios, 1);
+% 
+%     serviceProcesses(1) = templateServiceProcessStruct;
+%     serviceProcesses(1).scenarioName = "baseline";
+%     serviceProcesses(1).muDI = 0.18;
+%     serviceProcesses(1).eta = 0.10;
+%     serviceProcesses(1).Cs = 1.20;
+%     serviceProcesses(1).activationCostMultiple = 1.00;
+%     serviceProcesses(1).serviceProcessCAPEXCase = "low";
+% 
+%     serviceProcesses(2) = templateServiceProcessStruct;
+%     serviceProcesses(2).scenarioName = "upgraded";
+%     serviceProcesses(2).muDI = 0.24;
+%     serviceProcesses(2).eta = 0.08;
+%     serviceProcesses(2).Cs = 1.00;
+%     serviceProcesses(2).activationCostMultiple = 1.50;
+%     serviceProcesses(2).serviceProcessCAPEXCase = "medium";
+% 
+%     serviceProcesses(3) = templateServiceProcessStruct;
+%     serviceProcesses(3).scenarioName = "highEnd";
+%     serviceProcesses(3).muDI = 0.32;
+%     serviceProcesses(3).eta = 0.06;
+%     serviceProcesses(3).Cs = 0.80;
+%     serviceProcesses(3).activationCostMultiple = 2.25;
+%     serviceProcesses(3).serviceProcessCAPEXCase = "high";
+% 
+%     % ==================================================
+%     % Taxi / takeoff process scenarios
+%     % ==================================================
+%     numTaxiTakeoffProcessScenarios = 2;
+%     templateTaxiTakeoffProcessStruct = buildTemplateTaxiTakeoffProcessStruct();
+%     taxiTakeoffProcesses = repmat(templateTaxiTakeoffProcessStruct, numTaxiTakeoffProcessScenarios, 1);
+% 
+%     taxiTakeoffProcesses(1) = templateTaxiTakeoffProcessStruct;
+%     taxiTakeoffProcesses(1).scenarioName = "baselineTaxi";
+%     taxiTakeoffProcesses(1).beta = 0.45;
+%     taxiTakeoffProcesses(1).p = 1.25;
+%     taxiTakeoffProcesses(1).T0 = 10.00;
+%     taxiTakeoffProcesses(1).CT = 1.00;
+% 
+%     taxiTakeoffProcesses(2) = templateTaxiTakeoffProcessStruct;
+%     taxiTakeoffProcesses(2).scenarioName = "volatileTaxi";
+%     taxiTakeoffProcesses(2).beta = 0.80;
+%     taxiTakeoffProcesses(2).p = 1.50;
+%     taxiTakeoffProcesses(2).T0 = 12.00;
+%     taxiTakeoffProcesses(2).CT = 1.35;
+% 
+%     % ==================================================
+%     % Storm-count and severity parameters
+%     % ==================================================
+%     annualNumberOfStormsValues = [16, 28];
+% 
+%     stormDistributionParameters = struct( ...
+%         'alpha', 2, ...
+%         'theta', 0.30 ...
+%     );
+% 
+%     % ==================================================
+%     % Cost model scenarios
+%     % ==================================================
+%     numCostScenarios = 7;
+%     templateCostModelStruct = buildTemplateCostModelStruct();
+%     costModels = repmat(templateCostModelStruct, numCostScenarios, 1);
+% 
+%     % Baseline.
+%     costModels(1) = templateCostModelStruct;
+%     costModels(1).scenarioName = "baselineCost";
+%     costModels(1).singlePadCAPEX = 20;
+%     costModels(1).serviceProcessCAPEXes = [5, 10, 20];
+%     costModels(1).delayCosts = [5, 10, 20];
+%     costModels(1).baseFluidCost = 1.00;
+%     costModels(1).baseActivationCost = 1.00;
+%     costModels(1).cancellationCost = 25000;
+% 
+%     % Delay-sensitive network case.
+%     costModels(2) = templateCostModelStruct;
+%     costModels(2).scenarioName = "delaySensitiveCost";
+%     costModels(2).singlePadCAPEX = 20;
+%     costModels(2).serviceProcessCAPEXes = [5, 10, 20];
+%     costModels(2).delayCosts = [10, 25, 60];
+%     costModels(2).baseFluidCost = 1.00;
+%     costModels(2).baseActivationCost = 1.00;
+%     costModels(2).cancellationCost = 25000;
+% 
+%     % Fortress hub case:
+%     % Higher delay externality and higher cancellation penalty.
+%     costModels(3) = templateCostModelStruct;
+%     costModels(3).scenarioName = "fortressHubCost";
+%     costModels(3).singlePadCAPEX = 20;
+%     costModels(3).serviceProcessCAPEXes = [5, 10, 20];
+%     costModels(3).delayCosts = [20, 50, 120];
+%     costModels(3).baseFluidCost = 1.00;
+%     costModels(3).baseActivationCost = 1.00;
+%     costModels(3).cancellationCost = 75000;
+% 
+%     % High cancellation penalty:
+%     % Isolates cancellation penalty while leaving delay costs baseline.
+%     costModels(4) = templateCostModelStruct;
+%     costModels(4).scenarioName = "highCancellationCost";
+%     costModels(4).singlePadCAPEX = 20;
+%     costModels(4).serviceProcessCAPEXes = [5, 10, 20];
+%     costModels(4).delayCosts = [5, 10, 20];
+%     costModels(4).baseFluidCost = 1.00;
+%     costModels(4).baseActivationCost = 1.00;
+%     costModels(4).cancellationCost = 100000;
+% 
+%     % High labor / activation cost:
+%     % Tests whether expensive staffing pushes the policy away from
+%     % high-activation service processes.
+%     costModels(5) = templateCostModelStruct;
+%     costModels(5).scenarioName = "highLaborCost";
+%     costModels(5).singlePadCAPEX = 20;
+%     costModels(5).serviceProcessCAPEXes = [5, 10, 20];
+%     costModels(5).delayCosts = [5, 10, 20];
+%     costModels(5).baseFluidCost = 1.00;
+%     costModels(5).baseActivationCost = 2.00;
+%     costModels(5).cancellationCost = 25000;
+% 
+%     % Moderate fluid-price shock.
+%     costModels(6) = templateCostModelStruct;
+%     costModels(6).scenarioName = "highFluidCost50";
+%     costModels(6).singlePadCAPEX = 20;
+%     costModels(6).serviceProcessCAPEXes = [5, 10, 20];
+%     costModels(6).delayCosts = [5, 10, 20];
+%     costModels(6).baseFluidCost = 1.50;
+%     costModels(6).baseActivationCost = 1.00;
+%     costModels(6).cancellationCost = 25000;
+% 
+%     % Large fluid-price shock.
+%     costModels(7) = templateCostModelStruct;
+%     costModels(7).scenarioName = "highFluidCost3x";
+%     costModels(7).singlePadCAPEX = 20;
+%     costModels(7).serviceProcessCAPEXes = [5, 10, 20];
+%     costModels(7).delayCosts = [5, 10, 20];
+%     costModels(7).baseFluidCost = 3.00;
+%     costModels(7).baseActivationCost = 1.00;
+%     costModels(7).cancellationCost = 25000;
+% 
+%     simulationParameterGrids = struct();
+%     simulationParameterGrids.policies = policies;
+%     simulationParameterGrids.arrivalProcesses = arrivalProcesses;
+%     simulationParameterGrids.serviceProcesses = serviceProcesses;
+%     simulationParameterGrids.taxiTakeoffProcesses = taxiTakeoffProcesses;
+%     simulationParameterGrids.annualNumberOfStormsValues = annualNumberOfStormsValues;
+%     simulationParameterGrids.stormDistributionParameters = stormDistributionParameters;
+%     simulationParameterGrids.costModels = costModels;
+% end
