@@ -1,221 +1,5 @@
 function singleDayStats = computeStatisticsForSingleDayDES(simContext, delayCostThresholds, costModel)
     % COMPUTESTATISTICSFORSINGLEDAYDES Computes results of single-day DES via Monte Carlo estimation.
-    %
-    % INPUTS
-    %  simContext struct
-    %      Terminal simulation context returned after the single-day DES event
-    %      calendar has been fully processed. This function treats
-    %      simContext.state.aircraft as the source of truth for aircraft-level
-    %      histories and aggregates those histories into day-level Monte Carlo
-    %      estimates.
-    %
-    %  delayCostThresholds (1, 3) double
-    %      Delay thresholds [d1, d2, d3] in minutes used for the piecewise-linear
-    %      delay-cost regime. These thresholds are applied to positive departure
-    %      delay, defined as max(actualTakeoffTime - STD, 0).
-    %
-    % OUTPUT
-    %  singleDayStats struct with fields
-    %
-    %      .policy
-    %          Copy of simContext.policy for traceability. Contains the capacity
-    %          policy used for the simulated day.
-    %
-    %      .storm
-    %          Copy of simContext.storm for traceability. Contains the sampled
-    %          storm-day severity, duration, and cost multipliers.
-    %
-    %      .volume struct with fields
-    %          .numExternalArrivals
-    %              Number of external aircraft arrivals generated for the day.
-    %
-    %          .totalDeicingJobs
-    %              Total number of de-icing service cycles completed during the
-    %              day. This includes first-pass de-icing jobs and repeat jobs
-    %              induced by HOT violations.
-    %
-    %          .meanDeicingJobsPerExternalAircraft
-    %              Mean number of de-icing jobs required per external aircraft.
-    %
-    %          .numHOTViolations
-    %              Total number of HOT violations, computed as total de-icing
-    %              jobs minus external aircraft arrivals.
-    %
-    %          .hotViolationRatePerExternalAircraft
-    %              HOT violations divided by external aircraft arrivals.
-    %
-    %          .hotViolationRatePerDeicingJob
-    %              HOT violations divided by total de-icing jobs.
-    %
-    %      .deicing struct with fields
-    %          .totalQueueingDelay
-    %              Total aircraft-minutes spent waiting in the de-icing queue.
-    %
-    %          .totalServiceTime
-    %              Total aircraft-minutes spent receiving de-icing service.
-    %
-    %          .meanQueueingDelayPerExternalAircraft
-    %              Mean de-icing queueing delay per external aircraft.
-    %
-    %          .meanServiceTimePerExternalAircraft
-    %              Mean total de-icing service time per external aircraft,
-    %              including repeated service cycles caused by HOT violations.
-    %
-    %          .p95QueueingDelay
-    %              95th percentile of aircraft-level total de-icing queueing
-    %              delay.
-    %
-    %          .p95ServiceTime
-    %              95th percentile of aircraft-level total de-icing service time.
-    %
-    %      .taxiTakeoff struct with fields
-    %          .totalQueueingDelay
-    %              Total aircraft-minutes spent waiting for taxi/takeoff service.
-    %
-    %          .totalServiceTime
-    %              Total aircraft-minutes spent in taxi/takeoff service.
-    %
-    %          .totalSojournTime
-    %              Total aircraft-minutes spent in the taxi/takeoff subsystem,
-    %              including both queueing and service.
-    %
-    %          .meanQueueingDelayPerExternalAircraft
-    %              Mean taxi/takeoff queueing delay per external aircraft.
-    %
-    %          .meanServiceTimePerExternalAircraft
-    %              Mean taxi/takeoff service time per external aircraft.
-    %
-    %          .meanSojournTimePerExternalAircraft
-    %              Mean taxi/takeoff queueing plus service time per external
-    %              aircraft.
-    %
-    %          .p95QueueingDelay
-    %              95th percentile of aircraft-level taxi/takeoff queueing delay.
-    %
-    %          .p95SojournTime
-    %              95th percentile of aircraft-level taxi/takeoff sojourn time.
-    %
-    %      .groundSojourn struct with fields
-    %          .totalGroundSojournTime
-    %              Total aircraft-minutes from initial arrival to final takeoff.
-    %
-    %          .meanGroundSojournTime
-    %              Mean elapsed time from initial arrival to final takeoff.
-    %
-    %          .medianGroundSojournTime
-    %              Median elapsed time from initial arrival to final takeoff.
-    %
-    %          .p90GroundSojournTime
-    %              90th percentile of aircraft-level ground sojourn time.
-    %
-    %          .p95GroundSojournTime
-    %              95th percentile of aircraft-level ground sojourn time.
-    %
-    %          .p99GroundSojournTime
-    %              99th percentile of aircraft-level ground sojourn time.
-    %
-    %          .maxGroundSojournTime
-    %              Maximum aircraft-level ground sojourn time observed during the
-    %              simulated day.
-    %
-    %      .departureDelay struct with fields
-    %          .delayCostThresholds
-    %              Copy of the delay thresholds [d1, d2, d3] used for cost
-    %              calculations.
-    %
-    %          .totalDepartureDelay
-    %              Sum of signed departure delays, actualTakeoffTime - STD.
-    %
-    %          .totalPositiveDepartureDelay
-    %              Sum of nonnegative departure delays, max(actualTakeoffTime - STD, 0).
-    %
-    %          .meanDepartureDelay
-    %              Mean signed departure delay per external aircraft.
-    %
-    %          .meanPositiveDepartureDelay
-    %              Mean nonnegative departure delay per external aircraft.
-    %
-    %          .medianPositiveDepartureDelay
-    %              Median nonnegative departure delay.
-    %
-    %          .p90PositiveDepartureDelay
-    %              90th percentile of nonnegative departure delay.
-    %
-    %          .p95PositiveDepartureDelay
-    %              95th percentile of nonnegative departure delay.
-    %
-    %          .p99PositiveDepartureDelay
-    %              99th percentile of nonnegative departure delay.
-    %
-    %          .maxPositiveDepartureDelay
-    %              Maximum nonnegative departure delay.
-    %
-    %          .totalDelayAboveD1
-    %              Sum of positive delay minutes above delayCostThresholds(1).
-    %
-    %          .totalDelayAboveD2
-    %              Sum of positive delay minutes above delayCostThresholds(2).
-    %
-    %          .totalDelayAboveD3
-    %              Sum of positive delay minutes above delayCostThresholds(3).
-    %
-    %          .probDelayAboveD1
-    %              Fraction of aircraft with positive delay above delayCostThresholds(1).
-    %
-    %          .probDelayAboveD2
-    %              Fraction of aircraft with positive delay above delayCostThresholds(2).
-    %
-    %          .probDelayAboveD3
-    %              Fraction of aircraft with positive delay above delayCostThresholds(3).
-    %
-    %      .typeStats struct
-    %          Type-specific diagnostic statistics grouped by aircraft type. Each
-    %          aircraft type is stored as a substruct whose field name is generated
-    %          from the aircraft type string using matlab.lang.makeValidName.
-    %          For example:
-    %
-    %              singleDayStats.typeStats.E175
-    %              singleDayStats.typeStats.A320
-    %              singleDayStats.typeStats.B757
-    %              singleDayStats.typeStats.A350
-    %
-    %          Each aircraft-type substruct contains:
-    %
-    %              .type
-    %              .numAircraft
-    %              .totalDeicingJobs
-    %              .numHOTViolations
-    %              .meanDeicingCycles
-    %              .meanGroundSojournTime
-    %              .p95GroundSojournTime
-    %              .meanDepartureDelay
-    %              .meanPositiveDepartureDelay
-    %              .p95PositiveDepartureDelay
-    %              .meanDeicingQueueingDelay
-    %              .meanDeicingServiceTime
-    %              .meanTaxiTakeoffQueueingDelay
-    %              .meanTaxiTakeoffServiceTime
-    %              .meanTaxiTakeoffSojournTime
-    %
-    %      .diagnostics struct with fields
-    %          .allAircraftDeparted
-    %              Logical flag indicating whether all tracked aircraft ended the
-    %              simulation in the "departed" state.
-    %
-    %          .finalClockTime
-    %              Terminal simulation clock time.
-    %
-    %          .finalEventCalendarEmpty
-    %              Logical flag indicating whether the event calendar is empty at
-    %              the end of the simulation.
-    %
-    %          .finalDeicingQueueLength
-    %              Number of aircraft remaining in the de-icing queue at terminal
-    %              simulation time.
-    %
-    %          .finalTaxiTakeoffQueueLength
-    %              Number of aircraft remaining in the taxi/takeoff queue at
-    %              terminal simulation time.
 
     arguments
         simContext (1, 1) struct
@@ -230,6 +14,18 @@ function singleDayStats = computeStatisticsForSingleDayDES(simContext, delayCost
         return;
     end
 
+    % -- Aircraft status masks --
+    aircraftLocations = string({aircraft.currentLocation});
+    departedMask = aircraftLocations == "departed";
+
+    if isfield(aircraft, "isCancelled")
+        cancelledMask = logical([aircraft.isCancelled]);
+    else
+        cancelledMask = aircraftLocations == "cancelled";
+    end
+
+    activeOrUnresolvedMask = ~(departedMask | cancelledMask);
+
     % -- Extract aircraft-level vectors --
     aircraftTypes = string({aircraft.type});
     initialArrivalTimes = [aircraft.initialArrivalTime];
@@ -242,14 +38,30 @@ function singleDayStats = computeStatisticsForSingleDayDES(simContext, delayCost
     taxiTakeoffQueueingDelays = [aircraft.totalTaxiTakeoffQueueingDelay];
     taxiTakeoffServiceTimes = [aircraft.totalTaxiTakeoffServiceTime];
 
-    groundSojournTimes = actualTakeoffTimes - initialArrivalTimes;
-    taxiTakeoffSojournTimes = taxiTakeoffQueueingDelays + taxiTakeoffServiceTimes;
-    departureDelays = actualTakeoffTimes - scheduledTakeoffTimes;
+    if isfield(aircraft, "numHOTViolations")
+        numHOTViolationsByAircraft = [aircraft.numHOTViolations];
+    else
+        numHOTViolationsByAircraft = max(numDeicingCycles - 1, 0);
+    end
+
+    % -- Departed-only vectors --
+    departedInitialArrivalTimes = initialArrivalTimes(departedMask);
+    departedActualTakeoffTimes = actualTakeoffTimes(departedMask);
+    departedScheduledTakeoffTimes = scheduledTakeoffTimes(departedMask);
+
+    groundSojournTimes = departedActualTakeoffTimes - departedInitialArrivalTimes;
+    departureDelays = departedActualTakeoffTimes - departedScheduledTakeoffTimes;
     positiveDepartureDelays = max(departureDelays, 0);
 
+    taxiTakeoffSojournTimes = taxiTakeoffQueueingDelays + taxiTakeoffServiceTimes;
+
     numExternalArrivals = numel(aircraft);
+    numDepartures = sum(departedMask);
+    numCancellations = sum(cancelledMask);
+    numUnresolvedAircraft = sum(activeOrUnresolvedMask);
+
     totalDeicingJobs = sum(numDeicingCycles);
-    numHOTViolations = totalDeicingJobs - numExternalArrivals;
+    numHOTViolations = sum(numHOTViolationsByAircraft);
 
     % -- Populate output struct --
     singleDayStats = struct();
@@ -257,90 +69,112 @@ function singleDayStats = computeStatisticsForSingleDayDES(simContext, delayCost
     singleDayStats.policy = simContext.policy;
     singleDayStats.storm = simContext.storm;
 
+    singleDayStats.status = struct();
+    singleDayStats.status.numDepartures = numDepartures;
+    singleDayStats.status.numCancellations = numCancellations;
+    singleDayStats.status.numUnresolvedAircraft = numUnresolvedAircraft;
+    singleDayStats.status.departureRate = safeDivide(numDepartures, numExternalArrivals);
+    singleDayStats.status.cancellationRate = safeDivide(numCancellations, numExternalArrivals);
+    singleDayStats.status.unresolvedRate = safeDivide(numUnresolvedAircraft, numExternalArrivals);
+
     singleDayStats.volume = struct();
     singleDayStats.volume.numExternalArrivals = numExternalArrivals;
+    singleDayStats.volume.numDepartures = numDepartures;
+    singleDayStats.volume.numCancellations = numCancellations;
     singleDayStats.volume.totalDeicingJobs = totalDeicingJobs;
     singleDayStats.volume.meanDeicingJobsPerExternalAircraft = ...
-        totalDeicingJobs / numExternalArrivals;
+        safeDivide(totalDeicingJobs, numExternalArrivals);
     singleDayStats.volume.numHOTViolations = numHOTViolations;
     singleDayStats.volume.hotViolationRatePerExternalAircraft = ...
-        numHOTViolations / numExternalArrivals;
+        safeDivide(numHOTViolations, numExternalArrivals);
     singleDayStats.volume.hotViolationRatePerDeicingJob = ...
         safeDivide(numHOTViolations, totalDeicingJobs);
 
+    singleDayStats.cancellation = struct();
+    singleDayStats.cancellation.numCancellations = numCancellations;
+    singleDayStats.cancellation.cancellationRate = ...
+        safeDivide(numCancellations, numExternalArrivals);
+    singleDayStats.cancellation.totalCancellationCost = ...
+        numCancellations * costModel.cancellationCost;
+
     singleDayStats.deicing = struct();
-    singleDayStats.deicing.totalQueueingDelay = sum(deicingQueueingDelays);
-    singleDayStats.deicing.totalServiceTime = sum(deicingServiceTimes);
+    singleDayStats.deicing.totalQueueingDelay = sum(deicingQueueingDelays, "omitnan");
+    singleDayStats.deicing.totalServiceTime = sum(deicingServiceTimes, "omitnan");
     singleDayStats.deicing.meanQueueingDelayPerExternalAircraft = ...
-        mean(deicingQueueingDelays);
+        mean(deicingQueueingDelays, "omitnan");
     singleDayStats.deicing.meanServiceTimePerExternalAircraft = ...
-        mean(deicingServiceTimes);
-    singleDayStats.deicing.p95QueueingDelay = prctile(deicingQueueingDelays, 95);
-    singleDayStats.deicing.p95ServiceTime = prctile(deicingServiceTimes, 95);
+        mean(deicingServiceTimes, "omitnan");
+    singleDayStats.deicing.p95QueueingDelay = safePrctile(deicingQueueingDelays, 95);
+    singleDayStats.deicing.p95ServiceTime = safePrctile(deicingServiceTimes, 95);
 
     singleDayStats.taxiTakeoff = struct();
-    singleDayStats.taxiTakeoff.totalQueueingDelay = sum(taxiTakeoffQueueingDelays);
-    singleDayStats.taxiTakeoff.totalServiceTime = sum(taxiTakeoffServiceTimes);
-    singleDayStats.taxiTakeoff.totalSojournTime = sum(taxiTakeoffSojournTimes);
+    singleDayStats.taxiTakeoff.totalQueueingDelay = sum(taxiTakeoffQueueingDelays, "omitnan");
+    singleDayStats.taxiTakeoff.totalServiceTime = sum(taxiTakeoffServiceTimes, "omitnan");
+    singleDayStats.taxiTakeoff.totalSojournTime = sum(taxiTakeoffSojournTimes, "omitnan");
     singleDayStats.taxiTakeoff.meanQueueingDelayPerExternalAircraft = ...
-        mean(taxiTakeoffQueueingDelays);
+        mean(taxiTakeoffQueueingDelays, "omitnan");
     singleDayStats.taxiTakeoff.meanServiceTimePerExternalAircraft = ...
-        mean(taxiTakeoffServiceTimes);
+        mean(taxiTakeoffServiceTimes, "omitnan");
     singleDayStats.taxiTakeoff.meanSojournTimePerExternalAircraft = ...
-        mean(taxiTakeoffSojournTimes);
+        mean(taxiTakeoffSojournTimes, "omitnan");
     singleDayStats.taxiTakeoff.p95QueueingDelay = ...
-        prctile(taxiTakeoffQueueingDelays, 95);
+        safePrctile(taxiTakeoffQueueingDelays, 95);
     singleDayStats.taxiTakeoff.p95SojournTime = ...
-        prctile(taxiTakeoffSojournTimes, 95);
+        safePrctile(taxiTakeoffSojournTimes, 95);
 
     singleDayStats.groundSojourn = struct();
-    singleDayStats.groundSojourn.totalGroundSojournTime = sum(groundSojournTimes);
-    singleDayStats.groundSojourn.meanGroundSojournTime = mean(groundSojournTimes);
-    singleDayStats.groundSojourn.medianGroundSojournTime = median(groundSojournTimes);
-    singleDayStats.groundSojourn.p90GroundSojournTime = prctile(groundSojournTimes, 90);
-    singleDayStats.groundSojourn.p95GroundSojournTime = prctile(groundSojournTimes, 95);
-    singleDayStats.groundSojourn.p99GroundSojournTime = prctile(groundSojournTimes, 99);
-    singleDayStats.groundSojourn.maxGroundSojournTime = max(groundSojournTimes);
+    singleDayStats.groundSojourn.numAircraftIncluded = numDepartures;
+    singleDayStats.groundSojourn.totalGroundSojournTime = sum(groundSojournTimes, "omitnan");
+    singleDayStats.groundSojourn.meanGroundSojournTime = safeMean(groundSojournTimes);
+    singleDayStats.groundSojourn.medianGroundSojournTime = safeMedian(groundSojournTimes);
+    singleDayStats.groundSojourn.p90GroundSojournTime = safePrctile(groundSojournTimes, 90);
+    singleDayStats.groundSojourn.p95GroundSojournTime = safePrctile(groundSojournTimes, 95);
+    singleDayStats.groundSojourn.p99GroundSojournTime = safePrctile(groundSojournTimes, 99);
+    singleDayStats.groundSojourn.maxGroundSojournTime = safeMax(groundSojournTimes);
 
     singleDayStats.departureDelay = struct();
+    singleDayStats.departureDelay.numAircraftIncluded = numDepartures;
     singleDayStats.departureDelay.delayCostThresholds = delayCostThresholds;
-    singleDayStats.departureDelay.totalDepartureDelay = sum(departureDelays);
+    singleDayStats.departureDelay.totalDepartureDelay = sum(departureDelays, "omitnan");
     singleDayStats.departureDelay.totalPositiveDepartureDelay = ...
-        sum(positiveDepartureDelays);
-    singleDayStats.departureDelay.meanDepartureDelay = mean(departureDelays);
+        sum(positiveDepartureDelays, "omitnan");
+    singleDayStats.departureDelay.meanDepartureDelay = safeMean(departureDelays);
     singleDayStats.departureDelay.meanPositiveDepartureDelay = ...
-        mean(positiveDepartureDelays);
+        safeMean(positiveDepartureDelays);
     singleDayStats.departureDelay.medianPositiveDepartureDelay = ...
-        median(positiveDepartureDelays);
+        safeMedian(positiveDepartureDelays);
     singleDayStats.departureDelay.p90PositiveDepartureDelay = ...
-        prctile(positiveDepartureDelays, 90);
+        safePrctile(positiveDepartureDelays, 90);
     singleDayStats.departureDelay.p95PositiveDepartureDelay = ...
-        prctile(positiveDepartureDelays, 95);
+        safePrctile(positiveDepartureDelays, 95);
     singleDayStats.departureDelay.p99PositiveDepartureDelay = ...
-        prctile(positiveDepartureDelays, 99);
+        safePrctile(positiveDepartureDelays, 99);
     singleDayStats.departureDelay.maxPositiveDepartureDelay = ...
-        max(positiveDepartureDelays);
+        safeMax(positiveDepartureDelays);
 
     singleDayStats.departureDelay.totalDelayAboveD1 = ...
-        sum(max(positiveDepartureDelays - delayCostThresholds(1), 0));
+        sum(max(positiveDepartureDelays - delayCostThresholds(1), 0), "omitnan");
     singleDayStats.departureDelay.totalDelayAboveD2 = ...
-        sum(max(positiveDepartureDelays - delayCostThresholds(2), 0));
+        sum(max(positiveDepartureDelays - delayCostThresholds(2), 0), "omitnan");
     singleDayStats.departureDelay.totalDelayAboveD3 = ...
-        sum(max(positiveDepartureDelays - delayCostThresholds(3), 0));
+        sum(max(positiveDepartureDelays - delayCostThresholds(3), 0), "omitnan");
 
     singleDayStats.departureDelay.probDelayAboveD1 = ...
-        mean(positiveDepartureDelays > delayCostThresholds(1));
+        safeMean(positiveDepartureDelays > delayCostThresholds(1));
     singleDayStats.departureDelay.probDelayAboveD2 = ...
-        mean(positiveDepartureDelays > delayCostThresholds(2));
+        safeMean(positiveDepartureDelays > delayCostThresholds(2));
     singleDayStats.departureDelay.probDelayAboveD3 = ...
-        mean(positiveDepartureDelays > delayCostThresholds(3));
+        safeMean(positiveDepartureDelays > delayCostThresholds(3));
 
     singleDayStats.typeStats = computeAircraftTypeStats( ...
         aircraftTypes, ...
+        departedMask, ...
+        cancelledMask, ...
         numDeicingCycles, ...
-        groundSojournTimes, ...
-        departureDelays, ...
-        positiveDepartureDelays, ...
+        numHOTViolationsByAircraft, ...
+        actualTakeoffTimes, ...
+        initialArrivalTimes, ...
+        scheduledTakeoffTimes, ...
         deicingQueueingDelays, ...
         deicingServiceTimes, ...
         taxiTakeoffQueueingDelays, ...
@@ -348,9 +182,11 @@ function singleDayStats = computeStatisticsForSingleDayDES(simContext, delayCost
         taxiTakeoffSojournTimes);
 
     singleDayStats.diagnostics = struct();
-    singleDayStats.diagnostics.allAircraftDeparted = ...
-        all(strcmp(string({aircraft.currentLocation}), "departed"));
-    singleDayStats.diagnostics.finalClockTime = simContext.clock;
+    singleDayStats.diagnostics.allAircraftResolved = ...
+        all(departedMask | cancelledMask);
+    singleDayStats.diagnostics.allAircraftDeparted = all(departedMask);
+    singleDayStats.diagnostics.anyAircraftCancelled = any(cancelledMask);
+    singleDayStats.diagnostics.finalClockTime = getFinalClockTime(simContext.clock);
     singleDayStats.diagnostics.finalEventCalendarEmpty = ...
         isEventCalendarEmpty(simContext.eventCalendar);
     singleDayStats.diagnostics.finalDeicingQueueLength = ...
@@ -363,10 +199,13 @@ end
 
 function typeStats = computeAircraftTypeStats( ...
     aircraftTypes, ...
+    departedMask, ...
+    cancelledMask, ...
     numDeicingCycles, ...
-    groundSojournTimes, ...
-    departureDelays, ...
-    positiveDepartureDelays, ...
+    numHOTViolationsByAircraft, ...
+    actualTakeoffTimes, ...
+    initialArrivalTimes, ...
+    scheduledTakeoffTimes, ...
     deicingQueueingDelays, ...
     deicingServiceTimes, ...
     taxiTakeoffQueueingDelays, ...
@@ -389,39 +228,55 @@ function typeStats = computeAircraftTypeStats( ...
             continue;
         end
 
+        departedTypeMask = typeMask & departedMask;
+        cancelledTypeMask = typeMask & cancelledMask;
+
+        typeGroundSojournTimes = ...
+            actualTakeoffTimes(departedTypeMask) - initialArrivalTimes(departedTypeMask);
+
+        typeDepartureDelays = ...
+            actualTakeoffTimes(departedTypeMask) - scheduledTakeoffTimes(departedTypeMask);
+
+        typePositiveDepartureDelays = max(typeDepartureDelays, 0);
+
         typeStats.(currentFieldName) = struct();
         typeStats.(currentFieldName).type = currentType;
         typeStats.(currentFieldName).numAircraft = sum(typeMask);
+        typeStats.(currentFieldName).numDepartures = sum(departedTypeMask);
+        typeStats.(currentFieldName).numCancellations = sum(cancelledTypeMask);
+        typeStats.(currentFieldName).cancellationRate = ...
+            safeDivide(sum(cancelledTypeMask), sum(typeMask));
+
         typeStats.(currentFieldName).totalDeicingJobs = ...
-            sum(numDeicingCycles(typeMask));
+            sum(numDeicingCycles(typeMask), "omitnan");
         typeStats.(currentFieldName).numHOTViolations = ...
-            sum(numDeicingCycles(typeMask)) - sum(typeMask);
+            sum(numHOTViolationsByAircraft(typeMask), "omitnan");
         typeStats.(currentFieldName).meanDeicingCycles = ...
-            mean(numDeicingCycles(typeMask));
+            mean(numDeicingCycles(typeMask), "omitnan");
 
         typeStats.(currentFieldName).meanGroundSojournTime = ...
-            mean(groundSojournTimes(typeMask));
+            safeMean(typeGroundSojournTimes);
         typeStats.(currentFieldName).p95GroundSojournTime = ...
-            prctile(groundSojournTimes(typeMask), 95);
+            safePrctile(typeGroundSojournTimes, 95);
 
         typeStats.(currentFieldName).meanDepartureDelay = ...
-            mean(departureDelays(typeMask));
+            safeMean(typeDepartureDelays);
         typeStats.(currentFieldName).meanPositiveDepartureDelay = ...
-            mean(positiveDepartureDelays(typeMask));
+            safeMean(typePositiveDepartureDelays);
         typeStats.(currentFieldName).p95PositiveDepartureDelay = ...
-            prctile(positiveDepartureDelays(typeMask), 95);
+            safePrctile(typePositiveDepartureDelays, 95);
 
         typeStats.(currentFieldName).meanDeicingQueueingDelay = ...
-            mean(deicingQueueingDelays(typeMask));
+            mean(deicingQueueingDelays(typeMask), "omitnan");
         typeStats.(currentFieldName).meanDeicingServiceTime = ...
-            mean(deicingServiceTimes(typeMask));
+            mean(deicingServiceTimes(typeMask), "omitnan");
 
         typeStats.(currentFieldName).meanTaxiTakeoffQueueingDelay = ...
-            mean(taxiTakeoffQueueingDelays(typeMask));
+            mean(taxiTakeoffQueueingDelays(typeMask), "omitnan");
         typeStats.(currentFieldName).meanTaxiTakeoffServiceTime = ...
-            mean(taxiTakeoffServiceTimes(typeMask));
+            mean(taxiTakeoffServiceTimes(typeMask), "omitnan");
         typeStats.(currentFieldName).meanTaxiTakeoffSojournTime = ...
-            mean(taxiTakeoffSojournTimes(typeMask));
+            mean(taxiTakeoffSojournTimes(typeMask), "omitnan");
     end
 end
 
@@ -429,6 +284,9 @@ function emptyStats = buildEmptyAircraftTypeStats(aircraftType)
     emptyStats = struct();
     emptyStats.type = aircraftType;
     emptyStats.numAircraft = 0;
+    emptyStats.numDepartures = 0;
+    emptyStats.numCancellations = 0;
+    emptyStats.cancellationRate = NaN;
     emptyStats.totalDeicingJobs = 0;
     emptyStats.numHOTViolations = 0;
     emptyStats.meanDeicingCycles = NaN;
@@ -447,13 +305,28 @@ end
 function singleDayStats = buildEmptySingleDayStats()
     singleDayStats = struct();
 
+    singleDayStats.status = struct();
+    singleDayStats.status.numDepartures = 0;
+    singleDayStats.status.numCancellations = 0;
+    singleDayStats.status.numUnresolvedAircraft = 0;
+    singleDayStats.status.departureRate = NaN;
+    singleDayStats.status.cancellationRate = NaN;
+    singleDayStats.status.unresolvedRate = NaN;
+
     singleDayStats.volume = struct();
     singleDayStats.volume.numExternalArrivals = 0;
+    singleDayStats.volume.numDepartures = 0;
+    singleDayStats.volume.numCancellations = 0;
     singleDayStats.volume.totalDeicingJobs = 0;
     singleDayStats.volume.meanDeicingJobsPerExternalAircraft = NaN;
     singleDayStats.volume.numHOTViolations = 0;
     singleDayStats.volume.hotViolationRatePerExternalAircraft = NaN;
     singleDayStats.volume.hotViolationRatePerDeicingJob = NaN;
+
+    singleDayStats.cancellation = struct();
+    singleDayStats.cancellation.numCancellations = 0;
+    singleDayStats.cancellation.cancellationRate = NaN;
+    singleDayStats.cancellation.totalCancellationCost = 0;
 
     singleDayStats.deicing = struct();
     singleDayStats.taxiTakeoff = struct();
@@ -463,10 +336,54 @@ function singleDayStats = buildEmptySingleDayStats()
     singleDayStats.diagnostics = struct();
 end
 
+function finalClockTime = getFinalClockTime(clockState)
+    if isstruct(clockState) && isfield(clockState, "currentTime")
+        finalClockTime = clockState.currentTime;
+    else
+        finalClockTime = clockState;
+    end
+end
+
 function quotient = safeDivide(numerator, denominator)
     if denominator == 0
         quotient = NaN;
     else
         quotient = numerator / denominator;
+    end
+end
+
+function value = safeMean(values)
+    values = values(~isnan(values));
+    if isempty(values)
+        value = NaN;
+    else
+        value = mean(values);
+    end
+end
+
+function value = safeMedian(values)
+    values = values(~isnan(values));
+    if isempty(values)
+        value = NaN;
+    else
+        value = median(values);
+    end
+end
+
+function value = safePrctile(values, percentile)
+    values = values(~isnan(values));
+    if isempty(values)
+        value = NaN;
+    else
+        value = prctile(values, percentile);
+    end
+end
+
+function value = safeMax(values)
+    values = values(~isnan(values));
+    if isempty(values)
+        value = NaN;
+    else
+        value = max(values);
     end
 end

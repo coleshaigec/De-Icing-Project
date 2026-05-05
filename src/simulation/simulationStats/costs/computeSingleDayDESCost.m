@@ -19,12 +19,23 @@ function dayCost = computeSingleDayDESCost(singleDayStats, costModel)
 
     activationCost = costModel.baseActivationCost;
 
-    totalOperatingCost = delayCost + fluidCost + activationCost;
+    cancellationCost = ...
+        costModel.cancellationCost ...
+        * singleDayStats.cancellation.numCancellations;
+
+    totalOperatingCost = ...
+        delayCost ...
+        + fluidCost ...
+        + activationCost ...
+        + cancellationCost;
 
     dayCost = struct();
     dayCost.scenarioName = costModel.scenarioName;
+
     dayCost.delayCost = delayCost;
     dayCost.fluidCost = fluidCost;
     dayCost.activationCost = activationCost;
+    dayCost.cancellationCost = cancellationCost;
+
     dayCost.totalOperatingCost = totalOperatingCost;
 end
